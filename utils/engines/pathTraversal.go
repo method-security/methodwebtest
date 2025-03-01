@@ -129,6 +129,10 @@ func AnalyzeResponse(request methodwebtest.RequestInfo, validCodes map[int]bool,
 	}
 
 	bodySize := len(*request.ResponseBody)
+	if bodySize == 0 {
+		return false
+	}
+
 	wordCount := len(strings.Fields(*request.ResponseBody))
 	if checkBaseContentMatch {
 		if areSimilar(bodySize, baselineSize, threshold) && areSimilar(wordCount, baselineWords, threshold) {
