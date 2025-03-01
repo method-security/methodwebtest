@@ -9,6 +9,50 @@ import (
 	time "time"
 )
 
+type BodyXmlRpcFunctionAuthConfig struct {
+	Targets []string `json:"targets,omitempty" url:"targets,omitempty"`
+	Timeout int      `json:"timeout" url:"timeout"`
+	Retries int      `json:"retries" url:"retries"`
+	Sleep   int      `json:"sleep" url:"sleep"`
+
+	extraProperties map[string]interface{}
+	_rawJSON        json.RawMessage
+}
+
+func (b *BodyXmlRpcFunctionAuthConfig) GetExtraProperties() map[string]interface{} {
+	return b.extraProperties
+}
+
+func (b *BodyXmlRpcFunctionAuthConfig) UnmarshalJSON(data []byte) error {
+	type unmarshaler BodyXmlRpcFunctionAuthConfig
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*b = BodyXmlRpcFunctionAuthConfig(value)
+
+	extraProperties, err := core.ExtractExtraProperties(data, *b)
+	if err != nil {
+		return err
+	}
+	b.extraProperties = extraProperties
+
+	b._rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (b *BodyXmlRpcFunctionAuthConfig) String() string {
+	if len(b._rawJSON) > 0 {
+		if value, err := core.StringifyJSON(b._rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := core.StringifyJSON(b); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", b)
+}
+
 type HeaderBufferOverflowConfig struct {
 	Targets  []string `json:"targets,omitempty" url:"targets,omitempty"`
 	BodySize int      `json:"bodySize" url:"bodySize"`
@@ -870,12 +914,32 @@ func (t *TargetInfo) String() string {
 	return fmt.Sprintf("%#v", t)
 }
 
+type BodyEvent string
+
+const (
+	BodyEventXmlrpcfunctionauth BodyEvent = "XMLRPCFUNCTIONAUTH"
+)
+
+func NewBodyEventFromString(s string) (BodyEvent, error) {
+	switch s {
+	case "XMLRPCFUNCTIONAUTH":
+		return BodyEventXmlrpcfunctionauth, nil
+	}
+	var t BodyEvent
+	return "", fmt.Errorf("%s is not a valid %T", s, t)
+}
+
+func (b BodyEvent) Ptr() *BodyEvent {
+	return &b
+}
+
 type EventType struct {
 	Type        string
 	HeaderEvent HeaderEvent
 	PathEvent   PathEvent
 	QueryEvent  QueryEvent
 	MultiEvent  MultiEvent
+	BodyEvent   BodyEvent
 }
 
 func NewEventTypeFromHeaderEvent(value HeaderEvent) *EventType {
@@ -892,6 +956,10 @@ func NewEventTypeFromQueryEvent(value QueryEvent) *EventType {
 
 func NewEventTypeFromMultiEvent(value MultiEvent) *EventType {
 	return &EventType{Type: "MultiEvent", MultiEvent: value}
+}
+
+func NewEventTypeFromBodyEvent(value BodyEvent) *EventType {
+	return &EventType{Type: "BodyEvent", BodyEvent: value}
 }
 
 func (e *EventType) UnmarshalJSON(data []byte) error {
@@ -938,6 +1006,14 @@ func (e *EventType) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		e.MultiEvent = valueUnmarshaler.MultiEvent
+	case "BodyEvent":
+		var valueUnmarshaler struct {
+			BodyEvent BodyEvent `json:"value"`
+		}
+		if err := json.Unmarshal(data, &valueUnmarshaler); err != nil {
+			return err
+		}
+		e.BodyEvent = valueUnmarshaler.BodyEvent
 	}
 	return nil
 }
@@ -982,6 +1058,15 @@ func (e EventType) MarshalJSON() ([]byte, error) {
 			MultiEvent: e.MultiEvent,
 		}
 		return json.Marshal(marshaler)
+	case "BodyEvent":
+		var marshaler = struct {
+			Type      string    `json:"type"`
+			BodyEvent BodyEvent `json:"value"`
+		}{
+			Type:      "BodyEvent",
+			BodyEvent: e.BodyEvent,
+		}
+		return json.Marshal(marshaler)
 	}
 }
 
@@ -990,6 +1075,7 @@ type EventTypeVisitor interface {
 	VisitPathEvent(PathEvent) error
 	VisitQueryEvent(QueryEvent) error
 	VisitMultiEvent(MultiEvent) error
+	VisitBodyEvent(BodyEvent) error
 }
 
 func (e *EventType) Accept(visitor EventTypeVisitor) error {
@@ -1004,6 +1090,8 @@ func (e *EventType) Accept(visitor EventTypeVisitor) error {
 		return visitor.VisitQueryEvent(e.QueryEvent)
 	case "MultiEvent":
 		return visitor.VisitMultiEvent(e.MultiEvent)
+	case "BodyEvent":
+		return visitor.VisitBodyEvent(e.BodyEvent)
 	}
 }
 

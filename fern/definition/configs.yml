@@ -68,6 +68,13 @@ types:
       timeout: integer
       retries: integer
       sleep: integer
+  # Body Configs
+  BodyXmlRpcFunctionAuthConfig:
+    properties:
+      targets: list<string>
+      timeout: integer
+      retries: integer
+      sleep: integer
   # Multi Injection Configs
   InjectionLocation:
     enum:
