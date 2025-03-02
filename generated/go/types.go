@@ -143,6 +143,50 @@ func (h *HeaderMisconfigurationConfig) String() string {
 	return fmt.Sprintf("%#v", h)
 }
 
+type HeaderOptionsBleedConfig struct {
+	Targets []string `json:"targets,omitempty" url:"targets,omitempty"`
+	Timeout int      `json:"timeout" url:"timeout"`
+	Retries int      `json:"retries" url:"retries"`
+	Sleep   int      `json:"sleep" url:"sleep"`
+
+	extraProperties map[string]interface{}
+	_rawJSON        json.RawMessage
+}
+
+func (h *HeaderOptionsBleedConfig) GetExtraProperties() map[string]interface{} {
+	return h.extraProperties
+}
+
+func (h *HeaderOptionsBleedConfig) UnmarshalJSON(data []byte) error {
+	type unmarshaler HeaderOptionsBleedConfig
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*h = HeaderOptionsBleedConfig(value)
+
+	extraProperties, err := core.ExtractExtraProperties(data, *h)
+	if err != nil {
+		return err
+	}
+	h.extraProperties = extraProperties
+
+	h._rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (h *HeaderOptionsBleedConfig) String() string {
+	if len(h._rawJSON) > 0 {
+		if value, err := core.StringifyJSON(h._rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := core.StringifyJSON(h); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", h)
+}
+
 type HeaderServerOverloadConfig struct {
 	Targets     []string `json:"targets,omitempty" url:"targets,omitempty"`
 	HeaderNames []string `json:"headerNames,omitempty" url:"headerNames,omitempty"`
@@ -1104,6 +1148,7 @@ const (
 	HeaderEventSensitiveexposed HeaderEvent = "SENSITIVEEXPOSED"
 	HeaderEventServeroverload   HeaderEvent = "SERVEROVERLOAD"
 	HeaderEventUseragent        HeaderEvent = "USERAGENT"
+	HeaderEventOptionsbleed     HeaderEvent = "OPTIONSBLEED"
 )
 
 func NewHeaderEventFromString(s string) (HeaderEvent, error) {
@@ -1120,6 +1165,8 @@ func NewHeaderEventFromString(s string) (HeaderEvent, error) {
 		return HeaderEventServeroverload, nil
 	case "USERAGENT":
 		return HeaderEventUseragent, nil
+	case "OPTIONSBLEED":
+		return HeaderEventOptionsbleed, nil
 	}
 	var t HeaderEvent
 	return "", fmt.Errorf("%s is not a valid %T", s, t)

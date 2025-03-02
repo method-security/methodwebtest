@@ -31,6 +31,12 @@ types:
       timeout: integer
       retries: integer
       sleep: integer
+  HeaderOptionsBleedConfig:
+    properties:
+      targets: list<string>
+      timeout: integer
+      retries: integer
+      sleep: integer
   # Path Configs
   PathCrlfConfig:
     properties:
