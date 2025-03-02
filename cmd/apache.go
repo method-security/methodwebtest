@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	methodwebtest "github.com/Method-Security/methodwebtest/generated/go"
+	header "github.com/Method-Security/methodwebtest/internal/apache/header"
 	path "github.com/Method-Security/methodwebtest/internal/apache/path"
 	"github.com/spf13/cobra"
 )
@@ -20,6 +21,61 @@ func (a *MethodWebTest) InitApacheCommand() {
 	apacheCmd.PersistentFlags().Int("timeout", 30, "Timeout per request (seconds)")
 	apacheCmd.PersistentFlags().Int("sleep", 0, "Sleep time between requests (seconds)")
 	apacheCmd.PersistentFlags().Int("retries", 0, "Number of attempts per credential pair")
+
+	headerCmd := &cobra.Command{
+		Use:   "header",
+		Short: "Perform header injection tests against a target",
+		Long:  `Perform header injection tests against a target`,
+	}
+
+	optionsBleedCmd := &cobra.Command{
+		Use:   "optionsbleed",
+		Short: "Perform options bleed tests against a target",
+		Long:  `Perform options bleed tests against a target`,
+		Run: func(cmd *cobra.Command, args []string) {
+			defer a.OutputSignal.PanicHandler(cmd.Context())
+
+			// Target flags
+			targets, err := cmd.Flags().GetStringSlice("targets")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
+			if len(targets) == 0 {
+				a.OutputSignal.AddError(errors.New("no targets provided"))
+				return
+			}
+
+			// Configuration flags
+			timeout, err := cmd.Flags().GetInt("timeout")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
+			sleep, err := cmd.Flags().GetInt("sleep")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
+			retries, err := cmd.Flags().GetInt("retries")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
+
+			// Load configuration
+			config := LoadHeaderOptionsBleedConfig(targets, timeout, sleep, retries)
+
+			// Generate report
+			report := header.PerformApacheHeaderOptionsBleedInjection(cmd.Context(), config)
+			if len(report.Errors) > 0 {
+				a.OutputSignal.Status = 1
+			}
+			a.OutputSignal.Content = report
+		},
+	}
+
+	headerCmd.AddCommand(optionsBleedCmd)
 
 	// pathCmd holds the subcommands for path injection tests
 	pathCmd := &cobra.Command{
@@ -151,9 +207,25 @@ func (a *MethodWebTest) InitApacheCommand() {
 
 	pathCmd.AddCommand(traversalCmd)
 
+	apacheCmd.AddCommand(headerCmd)
 	apacheCmd.AddCommand(pathCmd)
 
 	a.RootCmd.AddCommand(apacheCmd)
+}
+
+func LoadHeaderOptionsBleedConfig(targets []string, timeout int, sleep int, retries int) *methodwebtest.HeaderOptionsBleedConfig {
+	config := &methodwebtest.HeaderOptionsBleedConfig{
+		Targets: targets,
+		Timeout: timeout,
+		Sleep:   sleep,
+		Retries: retries,
+	}
+
+	if config.Timeout < 1 {
+		config.Timeout = 0
+	}
+
+	return config
 }
 
 func LoadPathModFileConfig(targets []string, timeout int, sleep int, retries int) *methodwebtest.PathModFileConfig {
