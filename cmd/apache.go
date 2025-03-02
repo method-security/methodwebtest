@@ -77,6 +77,64 @@ func (a *MethodWebTest) InitApacheCommand() {
 
 	headerCmd.AddCommand(optionsBleedCmd)
 
+	luaBufferOverflowCmd := &cobra.Command{
+		Use:   "luabufferoverflow",
+		Short: "Perform lua buffer overflow tests against a target",
+		Long:  `Perform lua buffer overflow tests against a target`,
+		Run: func(cmd *cobra.Command, args []string) {
+			defer a.OutputSignal.PanicHandler(cmd.Context())
+
+			// Target flags
+			targets, err := cmd.Flags().GetStringSlice("targets")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
+			if len(targets) == 0 {
+				a.OutputSignal.AddError(errors.New("no targets provided"))
+				return
+			}
+
+			// Configuration flags
+			misconfiguredHeaderSize, err := cmd.Flags().GetInt("misconfiguredheadersize")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
+			timeout, err := cmd.Flags().GetInt("timeout")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
+			sleep, err := cmd.Flags().GetInt("sleep")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
+			retries, err := cmd.Flags().GetInt("retries")
+			if err != nil {
+				a.OutputSignal.AddError(err)
+				return
+			}
+
+			// Load configuration
+			config := LoadHeaderLuaBufferOverflowConfig(targets, timeout, sleep, retries, misconfiguredHeaderSize)
+
+			// Generate report
+			report := header.PerformApacheHeaderLuaBufferOverflowInjection(cmd.Context(), config)
+			if len(report.Errors) > 0 {
+				a.OutputSignal.Status = 1
+			}
+			a.OutputSignal.Content = report
+		},
+	}
+
+	luaBufferOverflowCmd.Flags().Int("misconfiguredheadersize", 1000000, "Misconfigured header size to use for lua buffer overflow")
+
+	_ = luaBufferOverflowCmd.MarkFlagRequired("misconfiguredheadersize")
+
+	headerCmd.AddCommand(luaBufferOverflowCmd)
+
 	// pathCmd holds the subcommands for path injection tests
 	pathCmd := &cobra.Command{
 		Use:   "path",
@@ -228,6 +286,21 @@ func LoadHeaderOptionsBleedConfig(targets []string, timeout int, sleep int, retr
 	return config
 }
 
+func LoadHeaderLuaBufferOverflowConfig(targets []string, timeout int, sleep int, retries int, misconfiguredHeaderSize int) *methodwebtest.HeaderLuaBufferOverflowConfig {
+	config := &methodwebtest.HeaderLuaBufferOverflowConfig{
+		Targets:                 targets,
+		MisconfiguredHeaderSize: misconfiguredHeaderSize,
+		Timeout:                 timeout,
+		Sleep:                   sleep,
+		Retries:                 retries,
+	}
+
+	if config.Timeout < 1 {
+		config.Timeout = 0
+	}
+
+	return config
+}
 func LoadPathModFileConfig(targets []string, timeout int, sleep int, retries int) *methodwebtest.PathModFileConfig {
 	config := &methodwebtest.PathModFileConfig{
 		Targets: targets,

@@ -98,6 +98,51 @@ func (h *HeaderBufferOverflowConfig) String() string {
 	return fmt.Sprintf("%#v", h)
 }
 
+type HeaderLuaBufferOverflowConfig struct {
+	Targets                 []string `json:"targets,omitempty" url:"targets,omitempty"`
+	MisconfiguredHeaderSize int      `json:"misconfiguredHeaderSize" url:"misconfiguredHeaderSize"`
+	Timeout                 int      `json:"timeout" url:"timeout"`
+	Retries                 int      `json:"retries" url:"retries"`
+	Sleep                   int      `json:"sleep" url:"sleep"`
+
+	extraProperties map[string]interface{}
+	_rawJSON        json.RawMessage
+}
+
+func (h *HeaderLuaBufferOverflowConfig) GetExtraProperties() map[string]interface{} {
+	return h.extraProperties
+}
+
+func (h *HeaderLuaBufferOverflowConfig) UnmarshalJSON(data []byte) error {
+	type unmarshaler HeaderLuaBufferOverflowConfig
+	var value unmarshaler
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	*h = HeaderLuaBufferOverflowConfig(value)
+
+	extraProperties, err := core.ExtractExtraProperties(data, *h)
+	if err != nil {
+		return err
+	}
+	h.extraProperties = extraProperties
+
+	h._rawJSON = json.RawMessage(data)
+	return nil
+}
+
+func (h *HeaderLuaBufferOverflowConfig) String() string {
+	if len(h._rawJSON) > 0 {
+		if value, err := core.StringifyJSON(h._rawJSON); err == nil {
+			return value
+		}
+	}
+	if value, err := core.StringifyJSON(h); err == nil {
+		return value
+	}
+	return fmt.Sprintf("%#v", h)
+}
+
 type HeaderMisconfigurationConfig struct {
 	Targets     []string    `json:"targets,omitempty" url:"targets,omitempty"`
 	HeaderEvent HeaderEvent `json:"headerEvent" url:"headerEvent"`
@@ -1142,13 +1187,14 @@ func (e *EventType) Accept(visitor EventTypeVisitor) error {
 type HeaderEvent string
 
 const (
-	HeaderEventCors             HeaderEvent = "CORS"
-	HeaderEventEscape           HeaderEvent = "ESCAPE"
-	HeaderEventHttp             HeaderEvent = "HTTP"
-	HeaderEventSensitiveexposed HeaderEvent = "SENSITIVEEXPOSED"
-	HeaderEventServeroverload   HeaderEvent = "SERVEROVERLOAD"
-	HeaderEventUseragent        HeaderEvent = "USERAGENT"
-	HeaderEventOptionsbleed     HeaderEvent = "OPTIONSBLEED"
+	HeaderEventCors              HeaderEvent = "CORS"
+	HeaderEventEscape            HeaderEvent = "ESCAPE"
+	HeaderEventHttp              HeaderEvent = "HTTP"
+	HeaderEventSensitiveexposed  HeaderEvent = "SENSITIVEEXPOSED"
+	HeaderEventServeroverload    HeaderEvent = "SERVEROVERLOAD"
+	HeaderEventUseragent         HeaderEvent = "USERAGENT"
+	HeaderEventOptionsbleed      HeaderEvent = "OPTIONSBLEED"
+	HeaderEventLuabufferoverflow HeaderEvent = "LUABUFFEROVERFLOW"
 )
 
 func NewHeaderEventFromString(s string) (HeaderEvent, error) {
@@ -1167,6 +1213,8 @@ func NewHeaderEventFromString(s string) (HeaderEvent, error) {
 		return HeaderEventUseragent, nil
 	case "OPTIONSBLEED":
 		return HeaderEventOptionsbleed, nil
+	case "LUABUFFEROVERFLOW":
+		return HeaderEventLuabufferoverflow, nil
 	}
 	var t HeaderEvent
 	return "", fmt.Errorf("%s is not a valid %T", s, t)

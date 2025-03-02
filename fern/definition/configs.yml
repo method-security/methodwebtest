@@ -37,6 +37,13 @@ types:
       timeout: integer
       retries: integer
       sleep: integer
+  HeaderLuaBufferOverflowConfig:
+    properties:
+      targets: list<string>
+      misconfiguredHeaderSize: integer
+      timeout: integer
+      retries: integer
+      sleep: integer
   # Path Configs
   PathCrlfConfig:
     properties:

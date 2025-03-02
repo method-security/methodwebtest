@@ -21,6 +21,7 @@ types:
       - SERVEROVERLOAD
       - USERAGENT
       - OPTIONSBLEED
+      - LUABUFFEROVERFLOW
   PathEvent:
     enum:
       - TRAVERSAL
