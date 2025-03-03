@@ -20,6 +20,7 @@ types:
       - SENSITIVEEXPOSED
       - SERVEROVERLOAD
       - USERAGENT
+      - OPTIONSBLEED
   PathEvent:
     enum:
       - TRAVERSAL
