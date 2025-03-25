@@ -16,7 +16,7 @@ func PerformHeaderMisconfigurationHTTP(ctx context.Context, config *methodwebtes
 
 	headerMisconfigurationConfig := methodwebtest.HeaderMisconfigurationEngineConfig{
 		Targets:   config.Targets,
-		Method:    methodwebtest.HttpMethodGet,
+		Method:    methodwebtest.HttpMethodOptions,
 		Payloads:  targetHeaderPayloadsList,
 		EventType: methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventHttp),
 		Timeout:   config.Timeout,
