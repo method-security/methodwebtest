@@ -15,11 +15,12 @@ func PerformHeaderMisconfigurationEscape(ctx context.Context, config *methodwebt
 	}
 
 	headerMisconfigurationConfig := methodwebtest.HeaderMisconfigurationEngineConfig{
-		Targets:   config.Targets,
-		Method:    methodwebtest.HttpMethodGet,
-		Payloads:  targetHeaderPayloadsList,
-		EventType: methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventEscape),
-		Timeout:   config.Timeout,
+		Targets:         config.Targets,
+		Method:          methodwebtest.HttpMethodGet,
+		Payloads:        targetHeaderPayloadsList,
+		EventType:       methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventEscape),
+		FollowRedirects: false,
+		Timeout:         config.Timeout,
 	}
 
 	report := utils.RunHeaderMisconfigurationEngine(ctx, &headerMisconfigurationConfig)

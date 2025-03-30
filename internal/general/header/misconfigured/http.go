@@ -15,11 +15,12 @@ func PerformHeaderMisconfigurationHTTP(ctx context.Context, config *methodwebtes
 	}
 
 	headerMisconfigurationConfig := methodwebtest.HeaderMisconfigurationEngineConfig{
-		Targets:   config.Targets,
-		Method:    methodwebtest.HttpMethodOptions,
-		Payloads:  targetHeaderPayloadsList,
-		EventType: methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventHttp),
-		Timeout:   config.Timeout,
+		Targets:         config.Targets,
+		Method:          methodwebtest.HttpMethodOptions,
+		Payloads:        targetHeaderPayloadsList,
+		EventType:       methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventHttp),
+		FollowRedirects: false,
+		Timeout:         config.Timeout,
 	}
 
 	report := utils.RunHeaderMisconfigurationEngine(ctx, &headerMisconfigurationConfig)
@@ -29,6 +30,9 @@ func PerformHeaderMisconfigurationHTTP(ctx context.Context, config *methodwebtes
 
 func generateHTTPHeaders(target string) []map[string]string {
 	return []map[string]string{
+		// Empty Options request
+		{"": ""},
+
 		// Overly permissive HTTP methods.
 		// Positive hit: The server allows `TRACE` and `TRACK` methods, which can enable dangerous actions
 		// like Cross-Site Tracing (XST).

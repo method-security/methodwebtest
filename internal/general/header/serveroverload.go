@@ -19,6 +19,7 @@ func PerformHeaderServerOverloadInjection(ctx context.Context, config *methodweb
 		InjectedPayloads:  generatedPayloads,
 		InjectionLocation: methodwebtest.InjectionLocationHeader,
 		EventType:         methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventServeroverload),
+		FollowRedirects:   false,
 		Timeout:           config.Timeout,
 		Retries:           config.Retries,
 		Sleep:             config.Sleep,

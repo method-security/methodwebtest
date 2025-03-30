@@ -12,6 +12,7 @@ types:
       injectedPayloads: list<map<string, string>>
       injectionLocation: configs.InjectionLocation
       eventType: request.EventType
+      followRedirects: boolean
       timeout: integer
       retries: integer
       sleep: integer
@@ -21,6 +22,7 @@ types:
       method: request.HttpMethod
       payloads: list<list<map<string, string>>>
       eventType: request.EventType
+      followRedirects: boolean
       timeout: integer
       retries: integer
       sleep: integer

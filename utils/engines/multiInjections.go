@@ -44,7 +44,7 @@ func RunMultiInjectionsEngine(ctx context.Context, config *methodwebtest.Injecti
 				}
 
 				startTime := time.Now()
-				request := utils.PerformRequestScan(baseURL, baseLinePath, config.Method, baselineRequestParams, []*methodwebtest.EventType{config.EventType}, config.Timeout, true)
+				request := utils.PerformRequestScan(baseURL, baseLinePath, config.Method, baselineRequestParams, []*methodwebtest.EventType{config.EventType}, config.Timeout, config.FollowRedirects)
 				endTime := time.Now()
 
 				baselineAttemptInfo.TimeSent = startTime
@@ -64,7 +64,7 @@ func RunMultiInjectionsEngine(ctx context.Context, config *methodwebtest.Injecti
 					}
 
 					startTime := time.Now()
-					request := utils.PerformRequestScan(baseURL, injectedPath, config.Method, requestParams, []*methodwebtest.EventType{config.EventType}, config.Timeout, true)
+					request := utils.PerformRequestScan(baseURL, injectedPath, config.Method, requestParams, []*methodwebtest.EventType{config.EventType}, config.Timeout, config.FollowRedirects)
 					endTime := time.Now()
 
 					attemptInfo.TimeSent = startTime

@@ -25,6 +25,7 @@ func PerformSQLiTimeDelayInjection(ctx context.Context, config *methodwebtest.Mu
 		InjectedPayloads:  generatedInjectionPayloads,
 		InjectionLocation: config.InjectionLocation,
 		EventType:         methodwebtest.NewEventTypeFromMultiEvent(methodwebtest.MultiEventSqlitimedelay),
+		FollowRedirects:   true,
 		Timeout:           config.Timeout,
 		Retries:           config.Retries,
 		Sleep:             config.Sleep,

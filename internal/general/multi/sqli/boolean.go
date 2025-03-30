@@ -27,6 +27,7 @@ func PerformSqliBooleanInjection(ctx context.Context, config *methodwebtest.Mult
 		InjectedPayloads:  generatedInjectionPayloads,
 		InjectionLocation: config.InjectionLocation,
 		EventType:         methodwebtest.NewEventTypeFromMultiEvent(methodwebtest.MultiEventSqliboolean),
+		FollowRedirects:   true,
 		Timeout:           config.Timeout,
 		Retries:           config.Retries,
 		Sleep:             config.Sleep,

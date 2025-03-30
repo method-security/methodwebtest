@@ -699,13 +699,14 @@ func (e *EngineConfig) Accept(visitor EngineConfigVisitor) error {
 }
 
 type HeaderMisconfigurationEngineConfig struct {
-	Targets   []string              `json:"targets,omitempty" url:"targets,omitempty"`
-	Method    HttpMethod            `json:"method" url:"method"`
-	Payloads  [][]map[string]string `json:"payloads,omitempty" url:"payloads,omitempty"`
-	EventType *EventType            `json:"eventType,omitempty" url:"eventType,omitempty"`
-	Timeout   int                   `json:"timeout" url:"timeout"`
-	Retries   int                   `json:"retries" url:"retries"`
-	Sleep     int                   `json:"sleep" url:"sleep"`
+	Targets         []string              `json:"targets,omitempty" url:"targets,omitempty"`
+	Method          HttpMethod            `json:"method" url:"method"`
+	Payloads        [][]map[string]string `json:"payloads,omitempty" url:"payloads,omitempty"`
+	EventType       *EventType            `json:"eventType,omitempty" url:"eventType,omitempty"`
+	FollowRedirects bool                  `json:"followRedirects" url:"followRedirects"`
+	Timeout         int                   `json:"timeout" url:"timeout"`
+	Retries         int                   `json:"retries" url:"retries"`
+	Sleep           int                   `json:"sleep" url:"sleep"`
 
 	extraProperties map[string]interface{}
 	_rawJSON        json.RawMessage
@@ -753,6 +754,7 @@ type InjectionEngineConfig struct {
 	InjectedPayloads  []map[string]string `json:"injectedPayloads,omitempty" url:"injectedPayloads,omitempty"`
 	InjectionLocation InjectionLocation   `json:"injectionLocation" url:"injectionLocation"`
 	EventType         *EventType          `json:"eventType,omitempty" url:"eventType,omitempty"`
+	FollowRedirects   bool                `json:"followRedirects" url:"followRedirects"`
 	Timeout           int                 `json:"timeout" url:"timeout"`
 	Retries           int                 `json:"retries" url:"retries"`
 	Sleep             int                 `json:"sleep" url:"sleep"`

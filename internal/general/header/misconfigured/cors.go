@@ -15,11 +15,12 @@ func PerformHeaderMisconfigurationCORS(ctx context.Context, config *methodwebtes
 	}
 
 	headerMisconfigurationConfig := methodwebtest.HeaderMisconfigurationEngineConfig{
-		Targets:   config.Targets,
-		Method:    methodwebtest.HttpMethodGet,
-		Payloads:  targetHeaderPayloadsList,
-		EventType: methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventCors),
-		Timeout:   config.Timeout,
+		Targets:         config.Targets,
+		Method:          methodwebtest.HttpMethodGet,
+		Payloads:        targetHeaderPayloadsList,
+		EventType:       methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventCors),
+		FollowRedirects: false,
+		Timeout:         config.Timeout,
 	}
 
 	report := utils.RunHeaderMisconfigurationEngine(ctx, &headerMisconfigurationConfig)
@@ -29,6 +30,9 @@ func PerformHeaderMisconfigurationCORS(ctx context.Context, config *methodwebtes
 
 func generateCORSHeaders(target string) []map[string]string {
 	return []map[string]string{
+		// Empty Request
+		{"": ""},
+
 		// Malicious origin with a spoofed referer.
 		// Positive hit: The server treats the request from `malicious-site.com` as if it came
 		// from `trusted-site.com`, allowing access.

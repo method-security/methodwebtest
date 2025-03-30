@@ -15,6 +15,7 @@ func PerformHeaderUserAgentInjection(ctx context.Context, config *methodwebtest.
 		InjectedPayloads:  []map[string]string{{"User-Agent": config.AgentHeader}},
 		InjectionLocation: methodwebtest.InjectionLocationHeader,
 		EventType:         methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventUseragent),
+		FollowRedirects:   true,
 		Timeout:           config.Timeout,
 		Retries:           config.Retries,
 		Sleep:             config.Sleep,
