@@ -14,11 +14,12 @@ func PerformHeaderMisconfigurationSensitiveExposed(ctx context.Context, config *
 	}
 
 	headerMisconfigurationConfig := methodwebtest.HeaderMisconfigurationEngineConfig{
-		Targets:   config.Targets,
-		Method:    methodwebtest.HttpMethodGet,
-		Payloads:  targetHeaderPayloadsList,
-		EventType: methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventSensitiveexposed),
-		Timeout:   config.Timeout,
+		Targets:         config.Targets,
+		Method:          methodwebtest.HttpMethodGet,
+		Payloads:        targetHeaderPayloadsList,
+		EventType:       methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventSensitiveexposed),
+		FollowRedirects: false,
+		Timeout:         config.Timeout,
 	}
 
 	report := utils.RunHeaderMisconfigurationEngine(ctx, &headerMisconfigurationConfig)
@@ -27,6 +28,9 @@ func PerformHeaderMisconfigurationSensitiveExposed(ctx context.Context, config *
 
 func generateSensitiveExposedHeaders(target string) []map[string]string {
 	return []map[string]string{
+		// Empty Request
+		{"": ""},
+
 		// Exposing sensitive headers to all origins.
 		// Positive hit: The server allows `Authorization` and `Set-Cookie` headers to be
 		// accessed by all origins, exposing credentials.

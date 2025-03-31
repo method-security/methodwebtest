@@ -40,6 +40,7 @@ func PerformXSSAlertInjection(ctx context.Context, config *methodwebtest.MultiIn
 		InjectedPayloads:  generatedPayloads,
 		InjectionLocation: config.InjectionLocation,
 		EventType:         methodwebtest.NewEventTypeFromMultiEvent(methodwebtest.MultiEventXssalert),
+		FollowRedirects:   true,
 		Timeout:           config.Timeout,
 		Retries:           config.Retries,
 		Sleep:             config.Sleep,

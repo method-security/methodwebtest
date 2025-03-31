@@ -43,7 +43,7 @@ func PerformNginxHeaderBufferOverflowInjection(ctx context.Context, config *meth
 			methodwebtest.HttpMethodPost,
 			methodwebtest.RequestParams{HeaderParams: headerParams, BodyParams: bodyParams},
 			[]*methodwebtest.EventType{methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventServeroverload)},
-			config.Timeout, true)
+			config.Timeout, false)
 		endTime := time.Now()
 
 		// Marshal data

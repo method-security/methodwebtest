@@ -16,6 +16,7 @@ func PerformApacheHeaderOptionsBleedInjection(ctx context.Context, config *metho
 		InjectedPayloads:  []map[string]string{{"Access-Control-Request-Method": "GET"}},
 		InjectionLocation: methodwebtest.InjectionLocationHeader,
 		EventType:         methodwebtest.NewEventTypeFromHeaderEvent(methodwebtest.HeaderEventOptionsbleed),
+		FollowRedirects:   false,
 		Timeout:           config.Timeout,
 		Retries:           config.Retries,
 		Sleep:             config.Sleep,

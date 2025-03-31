@@ -44,6 +44,7 @@ func PerformSqliEscapeCharacterInjection(ctx context.Context, config *methodwebt
 		InjectedPayloads:  generatedInjectionPayloads,
 		InjectionLocation: config.InjectionLocation,
 		EventType:         methodwebtest.NewEventTypeFromMultiEvent(methodwebtest.MultiEventSqliescape),
+		FollowRedirects:   true,
 		Timeout:           config.Timeout,
 		Retries:           config.Retries,
 		Sleep:             config.Sleep,

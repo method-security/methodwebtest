@@ -17,6 +17,7 @@ func PerformQueryReverseProxyInjection(ctx context.Context, config *methodwebtes
 		InjectedPayloads:  generateReverseProxyQueryInjectionParams(config.RedirectAddress),
 		InjectionLocation: methodwebtest.InjectionLocationQuery,
 		EventType:         methodwebtest.NewEventTypeFromQueryEvent(methodwebtest.QueryEventRedirect),
+		FollowRedirects:   false,
 		Timeout:           config.Timeout,
 		Retries:           config.Retries,
 		Sleep:             config.Sleep,

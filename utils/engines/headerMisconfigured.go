@@ -27,12 +27,19 @@ func RunHeaderMisconfigurationEngine(ctx context.Context, config *methodwebtest.
 			for retry := 0; retry <= config.Retries; retry++ {
 				attempt := methodwebtest.AttemptInfo{}
 				startTime := time.Now()
+
+				requestParams := methodwebtest.RequestParams{}
+				if _, ok := headerGroup[""]; !ok {
+					requestParams = methodwebtest.RequestParams{HeaderParams: headerGroup}
+				}
+
 				request := utils.PerformRequestScan(baseURL,
 					parsedPath,
 					config.Method,
-					methodwebtest.RequestParams{HeaderParams: headerGroup},
+					requestParams,
 					[]*methodwebtest.EventType{config.EventType},
-					config.Timeout, true)
+					config.Timeout,
+					config.FollowRedirects)
 				endTime := time.Now()
 
 				attempt.TimeSent = startTime

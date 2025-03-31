@@ -27,6 +27,7 @@ func PerformCommandTimeDelayInjection(ctx context.Context, config *methodwebtest
 		InjectedPayloads:  generatedInjectionPayloads,
 		InjectionLocation: config.InjectionLocation,
 		EventType:         methodwebtest.NewEventTypeFromMultiEvent(methodwebtest.MultiEventCommandtimedelay),
+		FollowRedirects:   true,
 		Timeout:           config.Timeout,
 		Retries:           config.Retries,
 		Sleep:             config.Sleep,
