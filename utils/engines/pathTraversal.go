@@ -2,12 +2,10 @@ package utils
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"log"
 	"math"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -44,20 +42,27 @@ func RunPathTraversalEngine(ctx context.Context, config *methodwebtest.PathTrave
 		}
 
 		targetInfo := methodwebtest.TargetInfo{Target: target, StartTimestamp: time.Now()}
-
-		// Get baseline size and word count
-		baselineSize, baselineWords, err := baseLine(target)
-		if err != nil {
-			allErrors = append(allErrors, err.Error())
-			continue
-		}
-
 		// Split target
 		baseURL, parsedTargetPath, err := utils.SplitTarget(target)
 		if err != nil {
 			allErrors = append(allErrors, err.Error())
 			continue
 		}
+
+		// Get baseline size and word count
+		baselineSize, baselineWords, err := baseLine(baseURL, parsedTargetPath, false, config.Timeout)
+		if err != nil {
+			allErrors = append(allErrors, err.Error())
+			continue
+		}
+		log.Println("[info] Baseline size:", baselineSize, "words:", baselineWords)
+
+		baselineSizeRandomPath, baselineWordsRandomPath, err := baseLine(baseURL, "xxxx", false, config.Timeout)
+		if err != nil {
+			allErrors = append(allErrors, err.Error())
+			continue
+		}
+		log.Println("[info] Baseline size random path:", baselineSizeRandomPath, "words:", baselineWordsRandomPath)
 
 		var attempts []*methodwebtest.AttemptInfo
 		for _, injectionPath := range allPaths {
@@ -93,7 +98,7 @@ func RunPathTraversalEngine(ctx context.Context, config *methodwebtest.PathTrave
 				// valid findings
 				isValid := false
 				if config.Threshold != nil {
-					isValid = AnalyzeResponse(request, validCodes, config.IgnoreBaseContent, baselineSize, baselineWords, *config.Threshold)
+					isValid = AnalyzeResponse(request, validCodes, config.IgnoreBaseContent, baselineSize, baselineWords, baselineSizeRandomPath, baselineWordsRandomPath, *config.Threshold)
 				}
 
 				// Marshal data
@@ -123,7 +128,7 @@ func RunPathTraversalEngine(ctx context.Context, config *methodwebtest.PathTrave
 }
 
 // AnalyzeResponse checks if the response singifies that file was found based on the response code and the baseline size and word count
-func AnalyzeResponse(request methodwebtest.RequestInfo, validCodes map[int]bool, checkBaseContentMatch bool, baselineSize, baselineWords int, threshold float64) bool {
+func AnalyzeResponse(request methodwebtest.RequestInfo, validCodes map[int]bool, checkBaseContentMatch bool, baselineSize, baselineWords int, baselineSizeRandomPath, baselineWordsRandomPath int, threshold float64) bool {
 	if request.StatusCode == nil || !validCodes[*request.StatusCode] || request.ResponseBody == nil {
 		return false
 	}
@@ -134,40 +139,34 @@ func AnalyzeResponse(request methodwebtest.RequestInfo, validCodes map[int]bool,
 	}
 
 	wordCount := len(strings.Fields(*request.ResponseBody))
+	// If the response is similar to the baseline or the baseline random path, then it is not a valid finding
+	// This is to prevent false positives from remote configurations that dont redirect but give blanket responses on all paths
 	if checkBaseContentMatch {
-		if areSimilar(bodySize, baselineSize, threshold) && areSimilar(wordCount, baselineWords, threshold) {
+		if (areSimilar(bodySize, baselineSize, threshold) && areSimilar(wordCount, baselineWords, threshold)) ||
+			(areSimilar(bodySize, baselineSizeRandomPath, threshold) && areSimilar(wordCount, baselineWordsRandomPath, threshold)) {
 			return false
 		}
 	}
+	log.Println("[info] Valid finding:", request.BaseUrl, request.Path, "size:", bodySize, "words:", wordCount)
 	return true
 }
 
 // baseLine gets the baseline size and word count of the target to be used for validation of the response
-func baseLine(baseTarget string) (int, int, error) {
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
+func baseLine(baseTarget string, path string, followRedirects bool, timeout int) (int, int, error) {
+	request := utils.PerformRequestScan(
+		baseTarget,
+		path,
+		methodwebtest.HttpMethodGet,
+		methodwebtest.RequestParams{},
+		[]*methodwebtest.EventType{methodwebtest.NewEventTypeFromPathEvent(methodwebtest.PathEventTraversal)},
+		timeout, followRedirects)
+
+	if request.ResponseBody == nil {
+		return 0, 0, errors.New("failed to get baseline body")
 	}
 
-	// Make the HTTP request
-	resp, err := client.Get(baseTarget)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return 0, 0, err
-	}
-
-	bodySize := len(body)
-	wordCount := len(strings.Fields(string(body)))
-
-	err = resp.Body.Close()
-	if err != nil {
-		return 0, 0, err
-	}
+	bodySize := len(*request.ResponseBody)
+	wordCount := len(strings.Fields(*request.ResponseBody))
 
 	return bodySize, wordCount, nil
 }
