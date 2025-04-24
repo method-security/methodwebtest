@@ -5,7 +5,6 @@ package methodwebtest
 import (
 	json "encoding/json"
 	fmt "fmt"
-
 	internal "github.com/Method-Security/methodwebtest/generated/go/internal"
 )
 

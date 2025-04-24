@@ -74,13 +74,3 @@ types:
       bodyParams: string
       formParams: map<string, string>
       multipartParams: map<string, string>
-  # Probe Structure
-  Probe:
-    properties:
-      payload: string
-      expectedResponse: optional<string>
-      expectedLatency: optional<integer>
-      engine: optional<string>
-      eventType: MultiEvent
-      injectionLocation: InjectionLocation
-      
