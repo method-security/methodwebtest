@@ -16,7 +16,7 @@ var SSTIPayloads = []string{
 	"${{1337*42}}",
 }
 
-func PerformSSTIInjection(ctx context.Context, config *methodwebtest.MultiInjectionConfig) *methodwebtest.Report {
+func PerformSSTIReflectInjection(ctx context.Context, config *methodwebtest.MultiInjectionConfig) *methodwebtest.Report {
 	generatedPayloads := utils.GenerateInjectionPayloads(SSTIPayloads, config.VariableData)
 
 	injectionConfig := methodwebtest.InjectionEngineConfig{
@@ -25,7 +25,7 @@ func PerformSSTIInjection(ctx context.Context, config *methodwebtest.MultiInject
 		Paths:             []string{"/"},
 		InjectedPayloads:  generatedPayloads,
 		InjectionLocation: config.InjectionLocation,
-		EventType:         methodwebtest.NewEventTypeFromMultiEvent(methodwebtest.MultiEventSsti),
+		EventType:         methodwebtest.NewEventTypeFromMultiEvent(methodwebtest.MultiEventSstireflect),
 		FollowRedirects:   true,
 		Timeout:           config.Timeout,
 		Retries:           config.Retries,
@@ -33,11 +33,11 @@ func PerformSSTIInjection(ctx context.Context, config *methodwebtest.MultiInject
 	}
 
 	report := utils.RunMultiInjectionsEngine(ctx, &injectionConfig)
-	checkForSSTI(report)
+	checkForSSTIReflect(report)
 	return report
 }
 
-func checkForSSTI(report *methodwebtest.Report) {
+func checkForSSTIReflect(report *methodwebtest.Report) {
 	for _, target := range report.Targets {
 		if target.Attempts == nil {
 			continue

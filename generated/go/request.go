@@ -366,7 +366,7 @@ const (
 	MultiEventSqliescape       MultiEvent = "SQLIESCAPE"
 	MultiEventSqlitimedelay    MultiEvent = "SQLITIMEDELAY"
 	MultiEventXssalert         MultiEvent = "XSSALERT"
-	MultiEventSsti             MultiEvent = "SSTI"
+	MultiEventSstireflect      MultiEvent = "SSTIREFLECT"
 )
 
 func NewMultiEventFromString(s string) (MultiEvent, error) {
@@ -383,8 +383,8 @@ func NewMultiEventFromString(s string) (MultiEvent, error) {
 		return MultiEventSqlitimedelay, nil
 	case "XSSALERT":
 		return MultiEventXssalert, nil
-	case "SSTI":
-		return MultiEventSsti, nil
+	case "SSTIREFLECT":
+		return MultiEventSstireflect, nil
 	}
 	var t MultiEvent
 	return "", fmt.Errorf("%s is not a valid %T", s, t)

@@ -29,8 +29,8 @@ func RunModuleSelector(ctx context.Context, config *methodwebtest.MultiInjection
 	if config.EventType == methodwebtest.MultiEventCommandecho {
 		return command.PerformCommandEchoInjection(ctx, config)
 	}
-	if config.EventType == methodwebtest.MultiEventSsti {
-		return ssti.PerformSSTIInjection(ctx, config)
+	if config.EventType == methodwebtest.MultiEventSstireflect {
+		return ssti.PerformSSTIReflectInjection(ctx, config)
 	}
 	return &methodwebtest.Report{Errors: []string{"No module found for event type"}}
 }
