@@ -50,19 +50,25 @@ func RunPathTraversalEngine(ctx context.Context, config *methodwebtest.PathTrave
 		}
 
 		// Get baseline size and word count
-		baselineSize, baselineWords, err := baseLine(baseURL, parsedTargetPath, false, config.Timeout)
+		// Follow redirects to get the correct baseline size and word count
+		baselineSize, baselineWords, err := baseLine(baseURL, parsedTargetPath, validCodes, config.Timeout, true)
 		if err != nil {
 			allErrors = append(allErrors, err.Error())
 			continue
 		}
-		log.Println("[info] Baseline size:", baselineSize, "words:", baselineWords)
+		baselineSizeInt := *baselineSize
+		baselineWordsInt := *baselineWords
+		log.Println("[info] Baseline size:", baselineSizeInt, "words:", baselineWordsInt)
 
-		baselineSizeRandomPath, baselineWordsRandomPath, err := baseLine(baseURL, "xxxx", false, config.Timeout)
+		// Do not follow redirects to get the correct baseline size and word count
+		// This is to prevent false positives from remote configurations that dont redirect but give blanket responses on all paths
+		baselineSizeRandomPath, baselineWordsRandomPath, err := baseLine(baseURL, "xxxx", validCodes, config.Timeout, false)
 		if err != nil {
 			allErrors = append(allErrors, err.Error())
-			continue
 		}
-		log.Println("[info] Baseline size random path:", baselineSizeRandomPath, "words:", baselineWordsRandomPath)
+		if baselineSizeRandomPath != nil && baselineWordsRandomPath != nil {
+			log.Println("[info] Baseline size random path:", *baselineSizeRandomPath, "words:", *baselineWordsRandomPath)
+		}
 
 		var attempts []*methodwebtest.AttemptInfo
 		for _, injectionPath := range allPaths {
@@ -98,7 +104,7 @@ func RunPathTraversalEngine(ctx context.Context, config *methodwebtest.PathTrave
 				// valid findings
 				isValid := false
 				if config.Threshold != nil {
-					isValid = AnalyzeResponse(request, validCodes, config.IgnoreBaseContent, baselineSize, baselineWords, baselineSizeRandomPath, baselineWordsRandomPath, *config.Threshold)
+					isValid = AnalyzeResponse(request, validCodes, config.IgnoreBaseContent, baselineSizeInt, baselineWordsInt, baselineSizeRandomPath, baselineWordsRandomPath, *config.Threshold)
 				}
 
 				// Marshal data
@@ -128,7 +134,7 @@ func RunPathTraversalEngine(ctx context.Context, config *methodwebtest.PathTrave
 }
 
 // AnalyzeResponse checks if the response singifies that file was found based on the response code and the baseline size and word count
-func AnalyzeResponse(request methodwebtest.RequestInfo, validCodes map[int]bool, checkBaseContentMatch bool, baselineSize, baselineWords int, baselineSizeRandomPath, baselineWordsRandomPath int, threshold float64) bool {
+func AnalyzeResponse(request methodwebtest.RequestInfo, validCodes map[int]bool, checkBaseContentMatch bool, baselineSize, baselineWords int, baselineSizeRandomPath *int, baselineWordsRandomPath *int, threshold float64) bool {
 	if request.StatusCode == nil || !validCodes[*request.StatusCode] || request.ResponseBody == nil {
 		return false
 	}
@@ -143,7 +149,7 @@ func AnalyzeResponse(request methodwebtest.RequestInfo, validCodes map[int]bool,
 	// This is to prevent false positives from remote configurations that dont redirect but give blanket responses on all paths
 	if checkBaseContentMatch {
 		if (areSimilar(bodySize, baselineSize, threshold) && areSimilar(wordCount, baselineWords, threshold)) ||
-			(areSimilar(bodySize, baselineSizeRandomPath, threshold) && areSimilar(wordCount, baselineWordsRandomPath, threshold)) {
+			(baselineSizeRandomPath != nil && baselineWordsRandomPath != nil && areSimilar(bodySize, *baselineSizeRandomPath, threshold) && areSimilar(wordCount, *baselineWordsRandomPath, threshold)) {
 			return false
 		}
 	}
@@ -152,7 +158,7 @@ func AnalyzeResponse(request methodwebtest.RequestInfo, validCodes map[int]bool,
 }
 
 // baseLine gets the baseline size and word count of the target to be used for validation of the response
-func baseLine(baseTarget string, path string, followRedirects bool, timeout int) (int, int, error) {
+func baseLine(baseTarget string, path string, validCodes map[int]bool, timeout int, followRedirects bool) (*int, *int, error) {
 	request := utils.PerformRequestScan(
 		baseTarget,
 		path,
@@ -161,14 +167,14 @@ func baseLine(baseTarget string, path string, followRedirects bool, timeout int)
 		[]*methodwebtest.EventType{methodwebtest.NewEventTypeFromPathEvent(methodwebtest.PathEventTraversal)},
 		timeout, followRedirects)
 
-	if request.ResponseBody == nil {
-		return 0, 0, errors.New("failed to get baseline body")
+	if request.StatusCode == nil || !validCodes[*request.StatusCode] || request.ResponseBody == nil {
+		return nil, nil, errors.New("failed to get baseline body")
 	}
 
 	bodySize := len(*request.ResponseBody)
 	wordCount := len(strings.Fields(*request.ResponseBody))
 
-	return bodySize, wordCount, nil
+	return &bodySize, &wordCount, nil
 }
 
 // parseResponseCodes parses a comma-separated or range-based string of response codes
