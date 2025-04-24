@@ -9,11 +9,11 @@ import (
 )
 
 var SSTIPayloads = []string{
-	"${7*7}",
-	"{{7*7}}",
-	"<%= 7 * 7 %>",
-	"#{ 7 * 7 }",
-	"${{7*7}}",
+	"${1337*42}",
+	"{{1337*42}}",
+	"<%= 1337 * 42 %>",
+	"#{ 1337 * 42 }",
+	"${{1337*42}}",
 }
 
 func PerformSSTIInjection(ctx context.Context, config *methodwebtest.MultiInjectionConfig) *methodwebtest.Report {
@@ -47,12 +47,12 @@ func checkForSSTI(report *methodwebtest.Report) {
 				continue
 			}
 			finding := false
-			if strings.Contains(*attempt.Request.ResponseBody, "49") {
+			if strings.Contains(*attempt.Request.ResponseBody, "56154") {
 				finding = true
 			}
 			if !finding && attempt.Request.ResponseHeaders != nil {
 				for _, headerValue := range attempt.Request.ResponseHeaders {
-					if strings.Contains(headerValue, "49") {
+					if strings.Contains(headerValue, "56154") {
 						finding = true
 					}
 				}
