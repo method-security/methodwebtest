@@ -6,6 +6,7 @@ import (
 	methodwebtest "github.com/Method-Security/methodwebtest/generated/go"
 	command "github.com/Method-Security/methodwebtest/internal/general/multi/command"
 	sqli "github.com/Method-Security/methodwebtest/internal/general/multi/sqli"
+	ssti "github.com/Method-Security/methodwebtest/internal/general/multi/ssti"
 	xss "github.com/Method-Security/methodwebtest/internal/general/multi/xss"
 )
 
@@ -27,6 +28,9 @@ func RunModuleSelector(ctx context.Context, config *methodwebtest.MultiInjection
 	}
 	if config.EventType == methodwebtest.MultiEventCommandecho {
 		return command.PerformCommandEchoInjection(ctx, config)
+	}
+	if config.EventType == methodwebtest.MultiEventSsti {
+		return ssti.PerformSSTIInjection(ctx, config)
 	}
 	return &methodwebtest.Report{Errors: []string{"No module found for event type"}}
 }
