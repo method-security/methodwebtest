@@ -39,6 +39,7 @@ types:
       - SQLIESCAPE
       - SQLITIMEDELAY
       - XSSALERT
+      - SSTIREFLECT
   EventType:
     union:
       HeaderEvent: HeaderEvent

@@ -497,7 +497,7 @@ func (a *MethodWebTest) InitGeneralCommand() {
 	}
 
 	multiCmd.Flags().String("method", "", "The HTTP method to use for the request")
-	multiCmd.Flags().String("event", "", "The event to test: XSSALERT, SQLIBOOLEAN, SQLIESCAPE, SQLITIMEDELAY")
+	multiCmd.Flags().String("event", "", "The event to test: XSSALERT, SQLIBOOLEAN, SQLIESCAPE, SQLITIMEDELAY, SSTIREFLECT")
 	multiCmd.Flags().String("variabledata", "", "Base64 encoded Json string of variable names and base values to add to injects")
 	multiCmd.Flags().String("injectionlocation", "", "The injection location to test: HEADER, PATH, QUERY, BODY, FORM, MULTIPART")
 
