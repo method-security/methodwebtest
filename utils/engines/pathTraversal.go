@@ -53,6 +53,7 @@ func RunPathTraversalEngine(ctx context.Context, config *methodwebtest.PathTrave
 		// Follow redirects to get the correct baseline size and word count
 		baselineSize, baselineWords, err := baseLine(baseURL, parsedTargetPath, validCodes, config.Timeout, true)
 		if err != nil {
+			err = errors.New("failed to get baseline body, stopping enumeration")
 			allErrors = append(allErrors, err.Error())
 			continue
 		}
@@ -64,6 +65,7 @@ func RunPathTraversalEngine(ctx context.Context, config *methodwebtest.PathTrave
 		// This is to prevent false positives from remote configurations that dont redirect but give blanket responses on all paths
 		baselineSizeRandomPath, baselineWordsRandomPath, err := baseLine(baseURL, "xxxx", validCodes, config.Timeout, false)
 		if err != nil {
+			err = errors.New("failed to get baseline random path, continuing enumeration")
 			allErrors = append(allErrors, err.Error())
 		}
 		if baselineSizeRandomPath != nil && baselineWordsRandomPath != nil {
@@ -168,7 +170,7 @@ func baseLine(baseTarget string, path string, validCodes map[int]bool, timeout i
 		timeout, followRedirects)
 
 	if request.StatusCode == nil || !validCodes[*request.StatusCode] || request.ResponseBody == nil {
-		return nil, nil, errors.New("failed to get baseline body")
+		return nil, nil, errors.New("baseline request failed")
 	}
 
 	bodySize := len(*request.ResponseBody)
