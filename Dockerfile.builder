@@ -1,11 +1,11 @@
 # Dockerfile used for the compilation of the statically compiled methodwebtest binary
-FROM golang:1.24.2-alpine3.20 as base
+FROM golang:1.24.2-alpine3.20 AS base
 ARG GORELEASER_VERSION="v2.0.1"
 ARG CLI_NAME="methodwebtest"
 ARG TARGETARCH
 
 RUN \
-  apk add --no-cache git gcc musl-dev bash && \
+  apk add --no-cache git gcc build-base libpcap-dev bash wget && \
   mkdir -p /app/${CLI_NAME} && \
   git config --global --add safe.directory /app/${CLI_NAME}
 
