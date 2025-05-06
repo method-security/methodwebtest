@@ -41,11 +41,15 @@ go.work.sum
 .idea/
 .vscode/
 
-# Fern Python
-generated/python/**
+# Fern
+/generated/**
 
 # MethodWebTest binary
 /methodwebtest
 
 # .DS_Store
 .DS_Store
+
+# For Release
+/artifacts/**
+/output/**
