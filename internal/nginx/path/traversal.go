@@ -15,6 +15,7 @@ var commonExposedPaths = []string{
 	"/backup",
 	"/config",
 	"/etc/nginx/nginx.conf",
+	"/etc/shadow",
 	"/public",
 	"/server-status",
 	"/usr/local/nginx/conf/nginx.conf",
