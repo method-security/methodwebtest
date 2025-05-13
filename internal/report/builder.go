@@ -1,22 +1,23 @@
 // internal/report/builder.go
 //
-// Streams nuclei templates and ResultEvents into a Fern-shaped *gen.Report,
-// parsing raw request/response dumps for full HTTP detail.
+// Converts nuclei ResultEvents into a Fern-generated *gen.Report.
 package report
 
 import (
-	"encoding/base64"
 	"net/url"
 	"strconv"
 	"strings"
 	"sync"
 
-	gen "github.com/Method-Security/webscan2/generated/go"
+	gen "github.com/Method-Security/methodwebtest/generated/go"
 	nuclei "github.com/projectdiscovery/nuclei/v3/lib"
 	nout "github.com/projectdiscovery/nuclei/v3/pkg/output"
 )
 
-// Builder accumulates templates and events into a Fern Report.
+/* ------------------------------------------------------------------ */
+/* Builder                                                            */
+/* ------------------------------------------------------------------ */
+
 type Builder struct {
 	mu        sync.Mutex
 	report    *gen.Report
@@ -24,7 +25,6 @@ type Builder struct {
 	targetIdx map[string]*gen.TargetInfo // host/baseURL → TargetInfo
 }
 
-// NewBuilder returns an empty Builder ready to be populated.
 func NewBuilder() *Builder {
 	return &Builder{
 		report:    &gen.Report{},
@@ -33,92 +33,81 @@ func NewBuilder() *Builder {
 	}
 }
 
-// PopulateProbes parses every template in the engine and creates one Probe per template.
+/* ---------------- template enumeration ---------------------------- */
+
 func (b *Builder) PopulateProbes(eng *nuclei.NucleiEngine) error {
 	if err := eng.LoadAllTemplates(); err != nil {
 		return err
 	}
 	for _, tpl := range eng.GetTemplates() {
 		id := tpl.ID
-		if _, exists := b.probeIdx[id]; exists {
+		if _, ok := b.probeIdx[id]; ok {
 			continue
 		}
-		// start with empty payload slice so JSON is "[]" not "null"
 		pr := &gen.Probe{
 			Id:               id,
 			Payloads:         []string{},
 			ExpectedMatchers: []*gen.ExpectedMatcher{},
 		}
-		// tpl.RequestsHTTP (each is *requests.HTTPRequest) has Payloads as interface{}
 		for _, req := range tpl.RequestsHTTP {
-			// Payloads
+			// payloads
 			for _, raw := range req.Payloads {
-				switch vals := raw.(type) {
+				switch v := raw.(type) {
 				case []string:
-					pr.Payloads = append(pr.Payloads, vals...)
+					pr.Payloads = append(pr.Payloads, v...)
 				case []interface{}:
-					for _, iv := range vals {
+					for _, iv := range v {
 						if s, ok := iv.(string); ok {
 							pr.Payloads = append(pr.Payloads, s)
 						}
 					}
 				}
 			}
-			// ExpectedMatchers
+			// expected matchers
 			for _, ma := range req.Matchers {
-				vals := []string{}
-				if len(ma.Words) > 0 {
-					vals = append(vals, ma.Words...)
-				}
-				if len(ma.Regex) > 0 {
-					vals = append(vals, ma.Regex...)
-				}
+				vals := append(ma.Words, ma.Regex...)
 				pr.ExpectedMatchers = append(pr.ExpectedMatchers, &gen.ExpectedMatcher{
 					Type:  ma.Type.String(),
 					Value: vals,
 				})
 			}
 		}
-
 		b.probeIdx[id] = pr
 		b.report.Probes = append(b.report.Probes, pr)
 	}
 	return nil
 }
 
-// Consume must be called for each ResultEvent emitted by the engine.
+/* ---------------- event consumption ------------------------------- */
+
 func (b *Builder) Consume(ev *nout.ResultEvent) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// 1. Probe lookup (fallback to a minimal one if absent)
-	pr, exists := b.probeIdx[ev.TemplateID]
-	if !exists {
+	/* probe ----------------------------------------------------------- */
+	pr, ok := b.probeIdx[ev.TemplateID]
+	if !ok {
 		pr = &gen.Probe{Id: ev.TemplateID}
 		b.probeIdx[ev.TemplateID] = pr
 		b.report.Probes = append(b.report.Probes, pr)
 	}
 
-	// 2. bucket by host/baseURL
+	/* bucket by host -------------------------------------------------- */
 	host := hostKey(ev)
 	tg, ok := b.targetIdx[host]
 	if !ok {
-		tg = &gen.TargetInfo{
-			Target: host,
-		}
+		tg = &gen.TargetInfo{Target: host}
 		b.targetIdx[host] = tg
 		b.report.Targets = append(b.report.Targets, tg)
 	}
 
-	// 3. Build AttemptInfo
+	/* build AttemptInfo ---------------------------------------------- */
 	at := &gen.AttemptInfo{
-		ProbeId:  pr.Id,
-		Request:  toRequestInfo(ev),
-		TimeSent: ev.Timestamp,
+		ProbeId:             pr.Id,
+		HttpRequestResponse: toReqResp(ev),
 	}
 
 	if hasTag(ev.Info.Tags.ToSlice(), "fingerprint") {
-		// Fingerprinting: pull extracted header/body value
 		var name string
 		if len(ev.ExtractedResults) > 0 {
 			name = ev.ExtractedResults[0]
@@ -126,11 +115,9 @@ func (b *Builder) Consume(ev *nout.ResultEvent) {
 		at.Finding = &gen.FindingInfo{
 			Name:    strPtr(name),
 			Finding: name != "",
-			// informational, so leave severity nil
-			Tags: ev.Info.Tags.ToSlice(),
+			Tags:    ev.Info.Tags.ToSlice(),
 		}
 	} else {
-		// Default vuln/match logic
 		at.Finding = &gen.FindingInfo{
 			Name:     strPtr(ev.MatcherName),
 			Finding:  ev.MatcherStatus,
@@ -143,14 +130,15 @@ func (b *Builder) Consume(ev *nout.ResultEvent) {
 	tg.RequestCount++
 }
 
-// Final returns the populated Report. Call after all events have been consumed.
+// Final returns the fully-populated Fern report. Call it after all
+// ResultEvents have been consumed.
 func (b *Builder) Final() *gen.Report {
 	return b.report
 }
 
-/* -------------------------------------------------------------------------- */
-/*                               Helpers                                      */
-/* -------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------ */
+/* Helpers                                                            */
+/* ------------------------------------------------------------------ */
 
 func hostKey(ev *nout.ResultEvent) string {
 	if u, err := url.Parse(ev.URL); err == nil && u.Host != "" {
@@ -159,73 +147,79 @@ func hostKey(ev *nout.ResultEvent) string {
 	return ev.Host
 }
 
-// toRequestInfo parses raw request/response dumps into RequestInfo.
-func toRequestInfo(ev *nout.ResultEvent) *gen.RequestInfo {
-	ri := &gen.RequestInfo{
-		PathParams:   map[string]string{},
-		QueryParams:  map[string]string{},
-		HeaderParams: map[string]string{},
+/* ---------- HttpRequestResponse construction ---------------------- */
+
+func toReqResp(ev *nout.ResultEvent) *gen.HttpRequestResponse {
+	req := &gen.HttpRequest{
+		BaseHeaders: map[string][]string{},
+		Timestamp:   ev.Timestamp,
+	}
+	resp := &gen.HttpResponse{
+		ResponseHeaders: map[string][]string{},
 	}
 
-	// 1) BaseUrl
-	if parsed, err := url.Parse(ev.URL); err == nil {
-		ri.BaseUrl = parsed.Scheme + "://" + parsed.Host
-	}
+	/* ---------- request part --------------------------------------- */
+	method, path, hdr, body := parseRawRequest(ev.Request)
 
-	// 2) Raw request → method, path override, headers, body
-	method, path, reqHeaders, reqBody := parseRawRequest(ev.Request)
 	if m, err := gen.NewHttpMethodFromString(strings.ToUpper(method)); err == nil {
-		ri.Method = m
+		req.Method = m
 	}
+	req.BaseHeaders = singleToMulti(hdr)
 
-	// override path + extract queryParams
-	if path != "" {
-		if u2, err := url.Parse(path); err == nil {
-			ri.Path = u2.Path
-			for k, vs := range u2.Query() {
-				if len(vs) > 0 {
-					ri.QueryParams[k] = vs[0]
-				}
+	// split BaseUrl / Path / QueryParams
+	if p, err := url.Parse(ev.URL); err == nil {
+		req.BaseUrl = p.Scheme + "://" + p.Host
+	}
+	req.Path = path
+
+	params := &gen.RequestParams{
+		PathParams:  map[string]string{},
+		QueryParams: map[string]string{},
+	}
+	if body != "" {
+		params.Body = gen.NewBodyFromText(&gen.TextBody{Value: body})
+	}
+	if u2, err := url.Parse(path); err == nil {
+		for k, vs := range u2.Query() {
+			if len(vs) > 0 {
+				params.QueryParams[k] = vs[0]
 			}
-		} else {
-			ri.Path = path
 		}
 	}
+	req.Parameters = params
 
-	// headers & body
-	ri.HeaderParams = reqHeaders
-	if reqBody != "" {
-		ri.BodyParams = &reqBody
-	}
-
-	// 3) Raw response → status, headers, body
-	code, respHeaders, respBody := parseRawResponse(ev.Response)
+	/* ---------- response part -------------------------------------- */
+	code, rh, rbody := parseRawResponse(ev.Response)
 	if code != 0 {
-		ri.StatusCode = &code
+		resp.StatusCode = &code
 	}
-	ri.ResponseHeaders = respHeaders
-	if respBody != "" {
-		ri.ResponseBody = &respBody
-		ri.ResponseBodyEncoded = ptrString(base64.StdEncoding.EncodeToString([]byte(respBody)))
+	resp.ResponseHeaders = singleToMulti(rh)
+	if rbody != "" {
+		resp.SizeBytes = ptrInt(len(rbody))
+		resp.ResponseBody = gen.NewBodyFromText(&gen.TextBody{
+			Value: rbody,
+		})
 	}
 
-	// 4) Errors
 	if ev.Error != "" {
-		ri.Errors = []string{ev.Error}
+		resp.Errors = []string{ev.Error}
 	}
 
-	return ri
+	return &gen.HttpRequestResponse{
+		Request:  req,
+		Response: resp,
+	}
 }
+
+/* -------- raw (request|response) parsing -------------------------- */
 
 func parseRawRequest(raw string) (method, path string, headers map[string]string, body string) {
 	parts := strings.SplitN(raw, "\r\n\r\n", 2)
 	headers = map[string]string{}
-	// first section: request-line + headers
 	lines := strings.Split(parts[0], "\r\n")
 	if len(lines) > 0 {
-		fields := strings.Fields(lines[0])
-		if len(fields) >= 2 {
-			method, path = fields[0], fields[1]
+		if f := strings.Fields(lines[0]); len(f) >= 2 {
+			method, path = f[0], f[1]
 		}
 		for _, h := range lines[1:] {
 			if kv := strings.SplitN(h, ":", 2); len(kv) == 2 {
@@ -233,22 +227,20 @@ func parseRawRequest(raw string) (method, path string, headers map[string]string
 			}
 		}
 	}
-	// body after blank line
 	if len(parts) == 2 {
 		body = parts[1]
 	}
 	return
 }
 
-func parseRawResponse(raw string) (statusCode int, headers map[string]string, body string) {
+func parseRawResponse(raw string) (code int, headers map[string]string, body string) {
 	parts := strings.SplitN(raw, "\r\n\r\n", 2)
 	headers = map[string]string{}
-	// status-line + headers
 	lines := strings.Split(parts[0], "\r\n")
 	if len(lines) > 0 {
-		if fields := strings.Fields(lines[0]); len(fields) >= 2 {
-			if code, err := strconv.Atoi(fields[1]); err == nil {
-				statusCode = code
+		if f := strings.Fields(lines[0]); len(f) >= 2 {
+			if c, err := strconv.Atoi(f[1]); err == nil {
+				code = c
 			}
 		}
 		for _, h := range lines[1:] {
@@ -257,14 +249,22 @@ func parseRawResponse(raw string) (statusCode int, headers map[string]string, bo
 			}
 		}
 	}
-	// body after blank line
 	if len(parts) == 2 {
 		body = parts[1]
 	}
 	return
 }
 
-// hasTag returns true if the template info tags include want.
+/* -------- misc ---------------------------------------------------- */
+
+func singleToMulti(m map[string]string) map[string][]string {
+	out := map[string][]string{}
+	for k, v := range m {
+		out[k] = []string{v}
+	}
+	return out
+}
+
 func hasTag(tags []string, want string) bool {
 	for _, t := range tags {
 		if t == want {
@@ -280,5 +280,4 @@ func strPtr(s string) *string {
 	}
 	return &s
 }
-
-func ptrString(s string) *string { return &s }
+func ptrInt(i int) *int { return &i }

@@ -2,7 +2,7 @@ imports:
   http: ./http.yml
   parameter: ./parameter.yml
   probe: ./probe.yml
-
+  config: ./config.yml
 types:
   FindingInfo:
     properties:
@@ -26,5 +26,6 @@ types:
 
   Report:
     properties:
+      config: optional<config.Config>
       probes: optional<list<probe.Probe>>
       targets: optional<list<TargetInfo>>

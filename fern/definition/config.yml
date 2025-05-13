@@ -1,0 +1,27 @@
+imports:
+  parameter: ./parameter.yml
+
+types:
+  ResourceType:
+    enum:
+      - API
+      - CMS
+      - WEBSERVER
+
+  VulnType:
+    enum:
+      - SQLI
+      - XSS
+      - SSTI
+      - COMMAND_INJECTION
+
+  Config:
+    properties:
+      targets: list<string>
+      threads: integer
+      timeout: integer
+      proxy: optional<string>
+      scanResourceTypes: optional<list<ResourceType>>
+      scanModules: optional<list<string>>
+      fuzzVulnTypes: optional<list<VulnType>>
+      fuzzParams: optional<list<parameter.Parameter>>
