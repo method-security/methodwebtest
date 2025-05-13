@@ -57,8 +57,8 @@ func (a *MethodWebTest) InitRootCommand() {
 	var outputFile string
 	a.RootCmd = &cobra.Command{
 		Use:   "methodwebtest",
-		Short: "Perform a web test against a target",
-		Long:  `Perform a web test against a target`,
+		Short: "Perform a web vulnerability scan against a target",
+		Long:  `Perform a web vulnerability scan against a target`,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
 			format, err := validateOutputFormat(outputFormat)
 			if err != nil {
@@ -107,6 +107,7 @@ func (a *MethodWebTest) InitRootCommand() {
 		},
 	}
 	a.RootCmd.AddCommand(a.VersionCmd)
+
 }
 
 func validateOutputFormat(output string) (writer.Format, error) {

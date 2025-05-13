@@ -1,0 +1,13 @@
+types:
+  ParameterLocation:
+    enum:
+      - QUERY
+      - PATH
+      - HEADER
+      - BODY
+
+  Parameter:
+    properties:
+      location: ParameterLocation
+      name: string
+      originalValue: optional<string>
