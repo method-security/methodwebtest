@@ -15,12 +15,18 @@ types:
       - SSTI
       - COMMAND_INJECTION
 
+  RunMode:
+    enum:
+      - FUZZ
+      - SCAN
+
   Config:
     properties:
       targets: list<string>
       threads: integer
       timeout: integer
       proxy: optional<string>
+      runMode: RunMode
       scanResourceTypes: optional<list<ResourceType>>
       scanModules: optional<list<string>>
       fuzzVulnTypes: optional<list<VulnType>>

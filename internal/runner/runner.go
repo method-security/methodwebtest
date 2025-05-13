@@ -20,6 +20,7 @@ type Config struct {
 	Headers []string // nuclei -WithCustomHeaders ("Key: Value")
 	Threads int
 	Proxy   string
+	RunMode gen.RunMode
 }
 
 // Scan runs nuclei and returns a *gen.Report built by report.Builder.
@@ -91,8 +92,11 @@ func Scan(ctx context.Context, cfg Config) (*gen.Report, error) {
 	if len(cfg.Headers) > 0 {
 		opts = append(opts, nuclei.WithHeaders(cfg.Headers))
 	}
+	if cfg.RunMode == gen.RunModeFuzz {
+		opts = append(opts, nuclei.DASTMode())
+	}
 	if cfg.Proxy != "" {
-		opts = append(opts, nuclei.WithProxy([]string{cfg.Proxy}, false))
+		opts = append(opts, nuclei.WithProxy([]string{cfg.Proxy}, true))
 	}
 
 	/* ---- 3. run nuclei ------------------------------------------------- */

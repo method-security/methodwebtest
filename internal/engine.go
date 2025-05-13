@@ -15,6 +15,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	methodwebtest "github.com/Method-Security/methodwebtest/generated/go"
@@ -30,50 +31,88 @@ func RunScan(ctx context.Context, cfg *methodwebtest.Config) (*methodwebtest.Rep
 	return execute(ctx, cfg, src, nil, nil)
 }
 
+// RunFuzz for “fuzz” commands: build constants, injection key, rewrite URLs
 func RunFuzz(ctx context.Context, cfg *methodwebtest.Config) (*methodwebtest.Report, error) {
-	src, err := templates.FuzzFS(cfg.FuzzVulnTypes)
+	// 1) load only the requested fuzz templates
+	srcFS, err := templates.FuzzFS(cfg.FuzzVulnTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	// -------- build runtime buckets ---------------------------------
-	varList := []string{}  // "key=value"
-	hdrList := []string{}  // "Header:Value"
-	extraQ := url.Values{} // constant ?k=v
-	extraPath := ""
+	// 2) build runtime buckets
+	var (
+		vars      []string       // for nuclei.WithVars("key=value")
+		headers   []string       // for nuclei.WithHeaders("Header:Value")
+		extraQ    = url.Values{} // constant query params
+		extraP    string         // constant path prefix
+		injectKey string         // single injection parameter name
+	)
 
 	for _, p := range cfg.FuzzParams {
-		switch {
-		case p.Location == "query" && p.Value != nil && *p.Value == "%s":
-			// placeholder param
-			varList = append(varList, fmt.Sprintf("query_param=%s", p.Name))
-		case p.Location == "query":
-			extraQ.Set(p.Name, *p.Value)
-		case p.Location == "header":
-			hdrList = append(hdrList, fmt.Sprintf("%s:%s", p.Name, *p.Value))
-		case p.Location == "path":
-			extraPath = path.Join(extraPath, *p.Value)
-		case p.Location == "body" && p.Value != nil && *p.Value == "%s":
-			varList = append(varList, p.Name)
+		if p.Value == nil {
+			continue
+		}
+		switch p.Location {
+		case "query":
+			if *p.Value == "%s" {
+				// this is the one we fuzz
+				injectKey = p.Name
+				vars = append(vars, fmt.Sprintf("inject_key=%s", p.Name))
+			} else {
+				extraQ.Set(p.Name, *p.Value)
+				vars = append(vars, fmt.Sprintf("%s=%s", p.Name, *p.Value))
+			}
+		case "header":
+			h := fmt.Sprintf("%s:%s", p.Name, *p.Value)
+			headers = append(headers, h)
+			// also as a variable inside templates
+			key := strings.ToLower(strings.ReplaceAll(p.Name, "-", "_"))
+			vars = append(vars, fmt.Sprintf("%s=%s", key, *p.Value))
+		case "path":
+			if *p.Value != "" {
+				extraP = path.Join(extraP, *p.Value)
+				vars = append(vars, fmt.Sprintf("path_prefix=%s", *p.Value))
+			}
+		case "body":
+			if *p.Value == "%s" {
+				injectKey = p.Name
+				vars = append(vars, fmt.Sprintf("inject_key=%s", p.Name))
+			} else if *p.Value != "" {
+				vars = append(vars, fmt.Sprintf("%s=%s", p.Name, *p.Value))
+			}
 		}
 	}
 
-	// -------- rewrite targets once ----------------------------------
+	// 3) rewrite each target so that both constant params AND the injection
+	//    key appear in the URL (so nuclei’s fuzz “keys:” will match)
 	fixed := make([]string, 0, len(cfg.Targets))
-	for _, t := range cfg.Targets {
-		u, _ := url.Parse(t)
-		u.Path = path.Join(extraPath, u.Path)
+	for _, raw := range cfg.Targets {
+		u, err := url.Parse(raw)
+		if err != nil {
+			continue
+		}
+		// prepend any constant path segments
+		if extraP != "" {
+			u.Path = path.Join(extraP, u.Path)
+		}
+		// merge constant query params
 		q := u.Query()
-		for k, v := range extraQ {
-			q[k] = v
+		for k, vs := range extraQ {
+			q[k] = vs
+		}
+		// ensure the injection key is present (even if empty)
+		if injectKey != "" {
+			if _, exists := q[injectKey]; !exists {
+				q.Set(injectKey, "")
+			}
 		}
 		u.RawQuery = q.Encode()
 		fixed = append(fixed, u.String())
 	}
-
-	// -------- hand everything to execute ----------------------------
 	cfg.Targets = fixed
-	return execute(ctx, cfg, src, varList, hdrList)
+
+	// 4) hand off to the shared execute
+	return execute(ctx, cfg, srcFS, vars, headers)
 }
 
 /* --------------------------------------------------------------------- */
@@ -103,6 +142,7 @@ func execute(parent context.Context, cfg *methodwebtest.Config, srcFS []fs.FS, v
 		Vars:    varList,
 		Headers: hdrList,
 		Proxy:   proxy,
+		RunMode: cfg.RunMode,
 	}
 
 	/* --- capture stdout from runner.Scan -------------------------------- */
