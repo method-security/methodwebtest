@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	methodwebtest "github.com/Method-Security/methodwebtest/generated/go"
+	"github.com/Method-Security/methodwebtest/internal/report"
 	"github.com/Method-Security/methodwebtest/internal/runner"
 	"github.com/Method-Security/methodwebtest/internal/templates"
 )
@@ -39,7 +40,11 @@ func RunScan(ctx context.Context, cfg *methodwebtest.Config) (*methodwebtest.Rep
 		Proxy:   getProxy(cfg),
 		RunMode: cfg.RunMode,
 	}
-	return runner.Run(ctx, rCfg)
+	builder := report.NewBuilder()
+	if err := builder.PopulateConfig(cfg); err != nil {
+		return nil, err
+	}
+	return runner.Run(ctx, rCfg, builder)
 }
 
 // RunFuzz builds JSONL entries and invokes runner.Run in fuzz mode.
@@ -56,7 +61,11 @@ func RunFuzz(ctx context.Context, cfg *methodwebtest.Config) (*methodwebtest.Rep
 		Proxy:       getProxy(cfg),
 		RunMode:     cfg.RunMode,
 	}
-	return runner.Run(ctx, rCfg)
+	builder := report.NewBuilder()
+	if err := builder.PopulateConfig(cfg); err != nil {
+		return nil, err
+	}
+	return runner.Run(ctx, rCfg, builder)
 }
 
 func buildJSONL(cfg *methodwebtest.Config) []string {

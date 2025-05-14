@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	gen "github.com/Method-Security/methodwebtest/generated/go"
+	methodwebtest "github.com/Method-Security/methodwebtest/generated/go"
 	nuclei "github.com/projectdiscovery/nuclei/v3/lib"
 	nout "github.com/projectdiscovery/nuclei/v3/pkg/output"
 )
@@ -20,17 +20,22 @@ import (
 
 type Builder struct {
 	mu        sync.Mutex
-	report    *gen.Report
-	probeIdx  map[string]*gen.Probe      // template-id → Probe
-	targetIdx map[string]*gen.TargetInfo // host/baseURL → TargetInfo
+	report    *methodwebtest.Report
+	probeIdx  map[string]*methodwebtest.Probe      // template-id → Probe
+	targetIdx map[string]*methodwebtest.TargetInfo // host/baseURL → TargetInfo
 }
 
 func NewBuilder() *Builder {
 	return &Builder{
-		report:    &gen.Report{},
-		probeIdx:  make(map[string]*gen.Probe),
-		targetIdx: make(map[string]*gen.TargetInfo),
+		report:    &methodwebtest.Report{},
+		probeIdx:  make(map[string]*methodwebtest.Probe),
+		targetIdx: make(map[string]*methodwebtest.TargetInfo),
 	}
+}
+
+func (b *Builder) PopulateConfig(cfg *methodwebtest.Config) error {
+	b.report.Config = cfg
+	return nil
 }
 
 /* ---------------- template enumeration ---------------------------- */
@@ -44,10 +49,10 @@ func (b *Builder) PopulateProbes(eng *nuclei.NucleiEngine) error {
 		if _, ok := b.probeIdx[id]; ok {
 			continue
 		}
-		pr := &gen.Probe{
+		pr := &methodwebtest.Probe{
 			Id:               id,
 			Payloads:         []string{},
-			ExpectedMatchers: []*gen.ExpectedMatcher{},
+			ExpectedMatchers: []*methodwebtest.ExpectedMatcher{},
 		}
 		for _, req := range tpl.RequestsHTTP {
 			// payloads
@@ -66,7 +71,7 @@ func (b *Builder) PopulateProbes(eng *nuclei.NucleiEngine) error {
 			// expected matchers
 			for _, ma := range req.Matchers {
 				vals := append(ma.Words, ma.Regex...)
-				pr.ExpectedMatchers = append(pr.ExpectedMatchers, &gen.ExpectedMatcher{
+				pr.ExpectedMatchers = append(pr.ExpectedMatchers, &methodwebtest.ExpectedMatcher{
 					Type:  ma.Type.String(),
 					Value: vals,
 				})
@@ -87,7 +92,7 @@ func (b *Builder) Consume(ev *nout.ResultEvent) {
 	/* probe ----------------------------------------------------------- */
 	pr, ok := b.probeIdx[ev.TemplateID]
 	if !ok {
-		pr = &gen.Probe{Id: ev.TemplateID}
+		pr = &methodwebtest.Probe{Id: ev.TemplateID}
 		b.probeIdx[ev.TemplateID] = pr
 		b.report.Probes = append(b.report.Probes, pr)
 	}
@@ -96,34 +101,22 @@ func (b *Builder) Consume(ev *nout.ResultEvent) {
 	host := hostKey(ev)
 	tg, ok := b.targetIdx[host]
 	if !ok {
-		tg = &gen.TargetInfo{Target: host}
+		tg = &methodwebtest.TargetInfo{Target: host}
 		b.targetIdx[host] = tg
 		b.report.Targets = append(b.report.Targets, tg)
 	}
 
 	/* build AttemptInfo ---------------------------------------------- */
-	at := &gen.AttemptInfo{
+	at := &methodwebtest.AttemptInfo{
 		ProbeId:             pr.Id,
 		HttpRequestResponse: toReqResp(ev),
 	}
 
-	if hasTag(ev.Info.Tags.ToSlice(), "fingerprint") {
-		var name string
-		if len(ev.ExtractedResults) > 0 {
-			name = ev.ExtractedResults[0]
-		}
-		at.Finding = &gen.FindingInfo{
-			Name:    strPtr(name),
-			Finding: name != "",
-			Tags:    ev.Info.Tags.ToSlice(),
-		}
-	} else {
-		at.Finding = &gen.FindingInfo{
-			Name:     strPtr(ev.MatcherName),
-			Finding:  ev.MatcherStatus,
-			Severity: strPtr(ev.Info.SeverityHolder.Severity.String()),
-			Tags:     ev.Info.Tags.ToSlice(),
-		}
+	at.Finding = &methodwebtest.FindingInfo{
+		Name:     strPtr(ev.MatcherName),
+		Finding:  ev.MatcherStatus,
+		Severity: strPtr(ev.Info.SeverityHolder.Severity.String()),
+		Tags:     ev.Info.Tags.ToSlice(),
 	}
 
 	tg.Attempts = append(tg.Attempts, at)
@@ -132,7 +125,7 @@ func (b *Builder) Consume(ev *nout.ResultEvent) {
 
 // Final returns the fully-populated Fern report. Call it after all
 // ResultEvents have been consumed.
-func (b *Builder) Final() *gen.Report {
+func (b *Builder) Final() *methodwebtest.Report {
 	return b.report
 }
 
@@ -149,19 +142,19 @@ func hostKey(ev *nout.ResultEvent) string {
 
 /* ---------- HttpRequestResponse construction ---------------------- */
 
-func toReqResp(ev *nout.ResultEvent) *gen.HttpRequestResponse {
-	req := &gen.HttpRequest{
+func toReqResp(ev *nout.ResultEvent) *methodwebtest.HttpRequestResponse {
+	req := &methodwebtest.HttpRequest{
 		BaseHeaders: map[string][]string{},
 		Timestamp:   ev.Timestamp,
 	}
-	resp := &gen.HttpResponse{
+	resp := &methodwebtest.HttpResponse{
 		ResponseHeaders: map[string][]string{},
 	}
 
 	/* ---------- request part --------------------------------------- */
 	method, path, hdr, body := parseRawRequest(ev.Request)
 
-	if m, err := gen.NewHttpMethodFromString(strings.ToUpper(method)); err == nil {
+	if m, err := methodwebtest.NewHttpMethodFromString(strings.ToUpper(method)); err == nil {
 		req.Method = m
 	}
 	req.BaseHeaders = singleToMulti(hdr)
@@ -172,12 +165,12 @@ func toReqResp(ev *nout.ResultEvent) *gen.HttpRequestResponse {
 	}
 	req.Path = path
 
-	params := &gen.RequestParams{
+	params := &methodwebtest.RequestParams{
 		Path:  &path,
 		Query: map[string]string{},
 	}
 	if body != "" {
-		params.Body = gen.NewBodyFromText(&gen.TextBody{Value: body})
+		params.Body = methodwebtest.NewBodyFromText(&methodwebtest.TextBody{Value: body})
 	}
 	if u2, err := url.Parse(path); err == nil {
 		for k, vs := range u2.Query() {
@@ -196,7 +189,7 @@ func toReqResp(ev *nout.ResultEvent) *gen.HttpRequestResponse {
 	resp.ResponseHeaders = singleToMulti(rh)
 	if rbody != "" {
 		resp.SizeBytes = ptrInt(len(rbody))
-		resp.ResponseBody = gen.NewBodyFromText(&gen.TextBody{
+		resp.ResponseBody = methodwebtest.NewBodyFromText(&methodwebtest.TextBody{
 			Value: rbody,
 		})
 	}
@@ -205,7 +198,7 @@ func toReqResp(ev *nout.ResultEvent) *gen.HttpRequestResponse {
 		resp.Errors = []string{ev.Error}
 	}
 
-	return &gen.HttpRequestResponse{
+	return &methodwebtest.HttpRequestResponse{
 		Request:  req,
 		Response: resp,
 	}

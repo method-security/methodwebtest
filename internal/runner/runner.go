@@ -17,7 +17,6 @@ type Config struct {
 	Targets     []string
 	RawRequests []string // JSONL lines when fuzzing
 	FS          []fs.FS  // template sources
-	Headers     []string // extra headers (optional)
 	Threads     int
 	Proxy       string
 	RunMode     methodwebtest.RunMode
@@ -123,7 +122,7 @@ func loadTargets(eng *nuclei.NucleiEngine, cfg Config) error {
 	return nil
 }
 
-func Run(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
+func Run(ctx context.Context, cfg Config, reportBuilder *report.Builder) (*methodwebtest.Report, error) {
 	if err := validateConfig(cfg); err != nil {
 		return nil, err
 	}
@@ -145,13 +144,11 @@ func Run(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
 	if err := loadTargets(eng, cfg); err != nil {
 		return nil, err
 	}
-
-	builder := report.NewBuilder()
-	if err := builder.PopulateProbes(eng); err != nil {
+	if err := reportBuilder.PopulateProbes(eng); err != nil {
 		return nil, err
 	}
-	if err := eng.ExecuteCallbackWithCtx(ctx, builder.Consume); err != nil {
+	if err := eng.ExecuteCallbackWithCtx(ctx, reportBuilder.Consume); err != nil {
 		return nil, err
 	}
-	return builder.Final(), nil
+	return reportBuilder.Final(), nil
 }
