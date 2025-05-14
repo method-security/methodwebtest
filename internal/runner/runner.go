@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	gen "github.com/Method-Security/methodwebtest/generated/go"
+	methodwebtest "github.com/Method-Security/methodwebtest/generated/go"
 	"github.com/Method-Security/methodwebtest/internal/report"
 	nuclei "github.com/projectdiscovery/nuclei/v3/lib"
 )
@@ -20,11 +20,11 @@ type Config struct {
 	Headers []string // nuclei -WithCustomHeaders ("Key: Value")
 	Threads int
 	Proxy   string
-	RunMode gen.RunMode
+	RunMode methodwebtest.RunMode
 }
 
 // Scan runs nuclei and returns a *gen.Report built by report.Builder.
-func Scan(ctx context.Context, cfg Config) (*gen.Report, error) {
+func Scan(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
 	if len(cfg.Targets) == 0 {
 		return nil, fmt.Errorf("runner: no targets")
 	}
@@ -92,7 +92,7 @@ func Scan(ctx context.Context, cfg Config) (*gen.Report, error) {
 	if len(cfg.Headers) > 0 {
 		opts = append(opts, nuclei.WithHeaders(cfg.Headers))
 	}
-	if cfg.RunMode == gen.RunModeFuzz {
+	if cfg.RunMode == methodwebtest.RunModeFuzz {
 		opts = append(opts, nuclei.DASTMode())
 	}
 	if cfg.Proxy != "" {
