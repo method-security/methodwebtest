@@ -81,7 +81,7 @@ func buildNucleiOptions(cfg Config, tmpDir string) []nuclei.NucleiSDKOptions {
 			ProbeConcurrency:              cfg.Threads,
 		}),
 		nuclei.WithVerbosity(nuclei.VerbosityOptions{Silent: true}),
-		nuclei.EnableMatcherStatus(),
+		//nuclei.EnableMatcherStatus(),
 	}
 
 	if cfg.RunMode == methodwebtest.RunModeFuzz {
