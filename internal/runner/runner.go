@@ -102,13 +102,15 @@ func loadTargets(eng *nuclei.NucleiEngine, cfg Config) error {
 		if err != nil {
 			return err
 		}
-		defer os.Remove(f.Name())
+		defer func() {
+			_ = os.Remove(f.Name())
+		}()
 		for _, line := range cfg.RawRequests {
 			if _, err := f.WriteString(line + "\n"); err != nil {
 				return err
 			}
 		}
-		f.Sync()
+		_ = f.Sync()
 
 		// tell Nuclei to parse JSONL
 		if err := eng.LoadTargetsWithHttpData(f.Name(), "jsonl"); err != nil {
@@ -130,7 +132,9 @@ func Run(ctx context.Context, cfg Config, reportBuilder *report.Builder) (*metho
 	if err != nil {
 		return nil, err
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
 
 	opts := buildNucleiOptions(cfg, tmpDir)
 

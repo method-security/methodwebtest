@@ -1,6 +1,8 @@
 package templates
 
-import "embed"
+import (
+	"embed"
+)
 
 // All contains every embedded pentest template under internal/templates/pentest.
 //
