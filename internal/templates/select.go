@@ -1,4 +1,3 @@
-// internal/templates/select.go
 package templates
 
 import (

@@ -1,6 +1,3 @@
-// internal/report/builder.go
-//
-// Converts nuclei ResultEvents into a Fern-generated *gen.Report.
 package report
 
 import (
@@ -256,15 +253,6 @@ func singleToMulti(m map[string]string) map[string][]string {
 		out[k] = []string{v}
 	}
 	return out
-}
-
-func hasTag(tags []string, want string) bool {
-	for _, t := range tags {
-		if t == want {
-			return true
-		}
-	}
-	return false
 }
 
 func strPtr(s string) *string {

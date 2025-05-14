@@ -1,4 +1,3 @@
-// internal/engine/engine.go
 package engine
 
 import (

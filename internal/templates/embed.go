@@ -1,9 +1,8 @@
-// internal/templates/embed.go
 package templates
 
 import "embed"
 
-// Embeds the entire pentest directory tree (recursively).
+// All contains every embedded pentest template under internal/templates/pentest.
 //
 //go:embed pentest
 var All embed.FS
