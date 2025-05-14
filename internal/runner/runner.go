@@ -14,47 +14,48 @@ import (
 )
 
 type Config struct {
-	Targets []string
-	FS      []fs.FS  // one or many sources (usually fs.Sub views)
-	Vars    []string // nuclei -WithCustomVariables
-	Headers []string // nuclei -WithCustomHeaders ("Key: Value")
-	Threads int
-	Proxy   string
-	RunMode methodwebtest.RunMode
+	Targets     []string
+	RawRequests []string // JSONL lines when fuzzing
+	FS          []fs.FS  // template sources
+	Headers     []string // extra headers (optional)
+	Threads     int
+	Proxy       string
+	RunMode     methodwebtest.RunMode
 }
 
-// Scan runs nuclei and returns a *gen.Report built by report.Builder.
-func Scan(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
-	if len(cfg.Targets) == 0 {
-		return nil, fmt.Errorf("runner: no targets")
+func Run(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
+	// validate
+	if cfg.RunMode == methodwebtest.RunModeFuzz {
+		if len(cfg.RawRequests) == 0 {
+			return nil, fmt.Errorf("runner: no RawRequests provided for fuzz mode")
+		}
+	} else {
+		if len(cfg.Targets) == 0 {
+			return nil, fmt.Errorf("runner: no Targets provided for scan mode")
+		}
 	}
 	if cfg.Threads <= 0 {
 		cfg.Threads = 25
 	}
 
-	/* ---- 1. copy selected templates into one temp dir ----------------- */
+	// 1) copy templates → tmpDir
 	tmpDir, err := os.MkdirTemp("", "methodwebtest-tpl-*")
 	if err != nil {
 		return nil, err
 	}
 	defer os.RemoveAll(tmpDir)
-
 	for idx, src := range cfg.FS {
-		err := fs.WalkDir(src, ".", func(p string, d fs.DirEntry, walkErr error) error {
-			// 1) if WalkDir itself had an error, bail out
+		_ = fs.WalkDir(src, ".", func(p string, d fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
 				return walkErr
 			}
-			// 2) skip directories
 			if d.IsDir() {
 				return nil
 			}
-			// 3) only YAML/YML
 			ext := filepath.Ext(p)
 			if ext != ".yaml" && ext != ".yml" {
 				return nil
 			}
-			// 4) read and write
 			data, err := fs.ReadFile(src, p)
 			if err != nil {
 				return err
@@ -62,16 +63,11 @@ func Scan(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
 			dst := filepath.Join(tmpDir, fmt.Sprintf("%02d-%s", idx, filepath.Base(p)))
 			return os.WriteFile(dst, data, 0o600)
 		})
-		if err != nil {
-			return nil, err
-		}
 	}
 
-	/* ---- 2. nuclei engine options ------------------------------------ */
+	// 2) build SDK options
 	opts := []nuclei.NucleiSDKOptions{
-		nuclei.WithTemplatesOrWorkflows(
-			nuclei.TemplateSources{Templates: []string{tmpDir}},
-		),
+		nuclei.WithTemplatesOrWorkflows(nuclei.TemplateSources{Templates: []string{tmpDir}}),
 		nuclei.EnableSelfContainedTemplates(),
 		nuclei.DisableUpdateCheck(),
 		nuclei.WithConcurrency(nuclei.Concurrency{
@@ -86,36 +82,53 @@ func Scan(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
 		nuclei.WithVerbosity(nuclei.VerbosityOptions{Silent: true}),
 		//nuclei.EnableMatcherStatus(),
 	}
-	if len(cfg.Vars) > 0 {
-		opts = append(opts, nuclei.WithVars(cfg.Vars))
-	}
-	if len(cfg.Headers) > 0 {
-		opts = append(opts, nuclei.WithHeaders(cfg.Headers))
-	}
+
 	if cfg.RunMode == methodwebtest.RunModeFuzz {
 		opts = append(opts, nuclei.DASTMode())
 	}
+
+	// proxy
 	if cfg.Proxy != "" {
-		opts = append(opts, nuclei.WithProxy([]string{cfg.Proxy}, true))
+		opts = append(opts, nuclei.WithProxy([]string{cfg.Proxy}, false))
 	}
 
-	/* ---- 3. run nuclei ------------------------------------------------- */
+	// 3) create engine
 	eng, err := nuclei.NewNucleiEngineCtx(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 	defer eng.Close()
 
-	eng.LoadTargets(cfg.Targets, false)
+	// 4) load targets
+	if cfg.RunMode == methodwebtest.RunModeFuzz {
+		// write JSONL to temp file
+		f, err := os.CreateTemp("", "requests-*.jsonl")
+		if err != nil {
+			return nil, err
+		}
+		defer os.Remove(f.Name())
+		for _, line := range cfg.RawRequests {
+			if _, err := f.WriteString(line + "\n"); err != nil {
+				return nil, err
+			}
+		}
+		f.Sync()
+
+		// tell Nuclei to parse JSONL
+		if err := eng.LoadTargetsWithHttpData(f.Name(), "jsonl"); err != nil {
+			return nil, err
+		}
+	} else {
+		// scan mode: by URL
+		eng.LoadTargets(cfg.Targets, false)
+	}
 
 	builder := report.NewBuilder()
 	if err := builder.PopulateProbes(eng); err != nil {
 		return nil, err
 	}
-
 	if err := eng.ExecuteCallbackWithCtx(ctx, builder.Consume); err != nil {
 		return nil, err
 	}
-
 	return builder.Final(), nil
 }

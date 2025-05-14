@@ -1,5 +1,6 @@
 imports:
   parameter: ./parameter.yml
+  http: ./http.yml
 
 types:
   ResourceType:
@@ -31,3 +32,4 @@ types:
       scanModules: optional<list<string>>
       fuzzVulnTypes: optional<list<VulnType>>
       fuzzParams: optional<list<parameter.Parameter>>
+      fuzzMethods: optional<list<http.HttpMethod>>

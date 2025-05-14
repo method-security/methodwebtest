@@ -173,8 +173,8 @@ func toReqResp(ev *nout.ResultEvent) *gen.HttpRequestResponse {
 	req.Path = path
 
 	params := &gen.RequestParams{
-		PathParams:  map[string]string{},
-		QueryParams: map[string]string{},
+		Path:  &path,
+		Query: map[string]string{},
 	}
 	if body != "" {
 		params.Body = gen.NewBodyFromText(&gen.TextBody{Value: body})
@@ -182,7 +182,7 @@ func toReqResp(ev *nout.ResultEvent) *gen.HttpRequestResponse {
 	if u2, err := url.Parse(path); err == nil {
 		for k, vs := range u2.Query() {
 			if len(vs) > 0 {
-				params.QueryParams[k] = vs[0]
+				params.Query[k] = vs[0]
 			}
 		}
 	}

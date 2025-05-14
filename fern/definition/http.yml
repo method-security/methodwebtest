@@ -57,9 +57,9 @@ types:
   # Request Params
   RequestParams:
     properties:
-      pathParams: optional<map<string, string>>
-      queryParams: optional<map<string, string>>
-      headerParams: optional<map<string, list<string>>>
+      path: optional<string>
+      query: optional<map<string, string>>
+      header: optional<map<string, list<string>>>
       body: optional<Body>
 
   # Request Structure

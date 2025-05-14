@@ -2,9 +2,9 @@ types:
   ParameterLocation:
     enum:
       - QUERY
-      - PATH
       - HEADER
       - BODY
+      - COOKIE
 
   Parameter:
     properties:
