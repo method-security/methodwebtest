@@ -30,14 +30,15 @@ For the full list of available installation options, please see the [Installatio
 ### Examples
 
 ```bash
-methodwebtest general path traversal --targets https://example.com --paths /.git/config
+methodwebtest pentest fuzz --vulntypes SSTI --targets https://0ad400c9035b8f508075e9e200180071.web-security-academy.net/ --params ewogICJwYXJhbXMiOiBbCiAgICB7CiAgICAgICJsb2NhdGlvbiI6ICJxdWVyeSIsCiAgICAgICJuYW1lIjogIm1lc3NhZ2UiLAogICAgICAidmFsdWUiOiAiJXMiCiAgICB9CiAgXQp9
 ```
 
 ```bash
-methodwebtest apache modfile --targets https://example.com 
+methodwebtest pentest scan --resourcetypes webserver --targets https://example.com
 ```
 
 ### Building a Statically Compiled Container for Local Testing
+
 (Reference reusable-build.yaml)
 
 1. Build ARM64 builder image: `docker buildx build . --platform linux/arm64 --load --tag armbuilder -f Dockerfile.builder`
@@ -52,9 +53,9 @@ methodwebtest apache modfile --targets https://example.com
 
 6. OR run command without shell example: `docker run methodwebtest:local TODO`
 
-
 ### Note:
-This tool runs on a headless-shell base image to support chrome/chromium browser automation. The dockerfile uses debian-based install tools. 
+
+This tool runs on a headless-shell base image to support chrome/chromium browser automation. The dockerfile uses debian-based install tools.
 
 ## Contributing
 
