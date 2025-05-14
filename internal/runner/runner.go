@@ -23,27 +23,27 @@ type Config struct {
 	RunMode     methodwebtest.RunMode
 }
 
-func Run(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
-	// validate
+func validateConfig(cfg Config) error {
 	if cfg.RunMode == methodwebtest.RunModeFuzz {
 		if len(cfg.RawRequests) == 0 {
-			return nil, fmt.Errorf("runner: no RawRequests provided for fuzz mode")
+			return fmt.Errorf("runner: no RawRequests provided for fuzz mode")
 		}
 	} else {
 		if len(cfg.Targets) == 0 {
-			return nil, fmt.Errorf("runner: no Targets provided for scan mode")
+			return fmt.Errorf("runner: no Targets provided for scan mode")
 		}
 	}
 	if cfg.Threads <= 0 {
 		cfg.Threads = 25
 	}
+	return nil
+}
 
-	// 1) copy templates → tmpDir
+func copyTemplatesToTmpDir(cfg Config) (string, error) {
 	tmpDir, err := os.MkdirTemp("", "methodwebtest-tpl-*")
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	defer os.RemoveAll(tmpDir)
 	for idx, src := range cfg.FS {
 		_ = fs.WalkDir(src, ".", func(p string, d fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
@@ -64,8 +64,10 @@ func Run(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
 			return os.WriteFile(dst, data, 0o600)
 		})
 	}
+	return tmpDir, nil
+}
 
-	// 2) build SDK options
+func buildNucleiOptions(cfg Config, tmpDir string) []nuclei.NucleiSDKOptions {
 	opts := []nuclei.NucleiSDKOptions{
 		nuclei.WithTemplatesOrWorkflows(nuclei.TemplateSources{Templates: []string{tmpDir}}),
 		nuclei.EnableSelfContainedTemplates(),
@@ -80,7 +82,7 @@ func Run(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
 			ProbeConcurrency:              cfg.Threads,
 		}),
 		nuclei.WithVerbosity(nuclei.VerbosityOptions{Silent: true}),
-		//nuclei.EnableMatcherStatus(),
+		nuclei.EnableMatcherStatus(),
 	}
 
 	if cfg.RunMode == methodwebtest.RunModeFuzz {
@@ -92,35 +94,56 @@ func Run(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
 		opts = append(opts, nuclei.WithProxy([]string{cfg.Proxy}, false))
 	}
 
-	// 3) create engine
-	eng, err := nuclei.NewNucleiEngineCtx(ctx, opts...)
-	if err != nil {
-		return nil, err
-	}
-	defer eng.Close()
+	return opts
+}
 
-	// 4) load targets
+func loadTargets(eng *nuclei.NucleiEngine, cfg Config) error {
 	if cfg.RunMode == methodwebtest.RunModeFuzz {
 		// write JSONL to temp file
 		f, err := os.CreateTemp("", "requests-*.jsonl")
 		if err != nil {
-			return nil, err
+			return err
 		}
 		defer os.Remove(f.Name())
 		for _, line := range cfg.RawRequests {
 			if _, err := f.WriteString(line + "\n"); err != nil {
-				return nil, err
+				return err
 			}
 		}
 		f.Sync()
 
 		// tell Nuclei to parse JSONL
 		if err := eng.LoadTargetsWithHttpData(f.Name(), "jsonl"); err != nil {
-			return nil, err
+			return err
 		}
 	} else {
 		// scan mode: by URL
 		eng.LoadTargets(cfg.Targets, false)
+	}
+	return nil
+}
+
+func Run(ctx context.Context, cfg Config) (*methodwebtest.Report, error) {
+	if err := validateConfig(cfg); err != nil {
+		return nil, err
+	}
+
+	tmpDir, err := copyTemplatesToTmpDir(cfg)
+	if err != nil {
+		return nil, err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	opts := buildNucleiOptions(cfg, tmpDir)
+
+	eng, err := nuclei.NewNucleiEngineCtx(ctx, opts...)
+	if err != nil {
+		return nil, err
+	}
+	defer eng.Close()
+
+	if err := loadTargets(eng, cfg); err != nil {
+		return nil, err
 	}
 
 	builder := report.NewBuilder()
