@@ -10,6 +10,8 @@ import (
 	new_ "github.com/Method-Security/methodwebtest/generated/go/new_"
 )
 
+// All is the pentest templates
+//
 //go:embed pentest
 var All embed.FS
 
@@ -115,17 +117,4 @@ func wantVuln(in []new_.VulnType) ([]new_.VulnType, error) {
 		}
 	}
 	return in, nil
-}
-
-func normalize(ms []string) map[string]struct{} {
-	if len(ms) == 0 {
-		return nil
-	}
-	out := make(map[string]struct{}, len(ms))
-	for _, m := range ms {
-		if v := strings.ToLower(strings.TrimSpace(m)); v != "" {
-			out[v] = struct{}{}
-		}
-	}
-	return out
 }
