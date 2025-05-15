@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	methodwebtest "github.com/Method-Security/methodwebtest/generated/go"
+	new_ "github.com/Method-Security/methodwebtest/generated/go/new_"
 	"github.com/Method-Security/methodwebtest/internal/report"
 	nuclei "github.com/projectdiscovery/nuclei/v3/lib"
 )
@@ -18,11 +18,11 @@ type Config struct {
 	FS          []fs.FS  // template sources
 	Threads     int
 	Proxy       string
-	RunMode     methodwebtest.RunMode
+	RunMode     new_.RunMode
 }
 
 func validateConfig(cfg Config) error {
-	if cfg.RunMode == methodwebtest.RunModeFuzz {
+	if cfg.RunMode == new_.RunModeFuzz {
 		if len(cfg.RawRequests) == 0 {
 			return fmt.Errorf("runner: no RawRequests provided for fuzz mode")
 		}
@@ -83,7 +83,7 @@ func buildNucleiOptions(cfg Config, tmpDir string) []nuclei.NucleiSDKOptions {
 		//nuclei.EnableMatcherStatus(),
 	}
 
-	if cfg.RunMode == methodwebtest.RunModeFuzz {
+	if cfg.RunMode == new_.RunModeFuzz {
 		opts = append(opts, nuclei.DASTMode())
 	}
 
@@ -96,7 +96,7 @@ func buildNucleiOptions(cfg Config, tmpDir string) []nuclei.NucleiSDKOptions {
 }
 
 func loadTargets(eng *nuclei.NucleiEngine, cfg Config) error {
-	if cfg.RunMode == methodwebtest.RunModeFuzz {
+	if cfg.RunMode == new_.RunModeFuzz {
 		// write JSONL to temp file
 		f, err := os.CreateTemp("", "requests-*.jsonl")
 		if err != nil {
@@ -123,7 +123,7 @@ func loadTargets(eng *nuclei.NucleiEngine, cfg Config) error {
 	return nil
 }
 
-func Run(ctx context.Context, cfg Config, reportBuilder *report.Builder) (*methodwebtest.Report, error) {
+func Run(ctx context.Context, cfg Config, reportBuilder *report.Builder) (*new_.Report, error) {
 	if err := validateConfig(cfg); err != nil {
 		return nil, err
 	}

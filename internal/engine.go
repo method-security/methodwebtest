@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	methodwebtest "github.com/Method-Security/methodwebtest/generated/go"
+	new_ "github.com/Method-Security/methodwebtest/generated/go/new_"
 	"github.com/Method-Security/methodwebtest/internal/report"
 	"github.com/Method-Security/methodwebtest/internal/runner"
 	"github.com/Method-Security/methodwebtest/internal/templates"
@@ -27,7 +27,7 @@ type proxifyRequest struct {
 }
 
 // RunScan for scan mode—unchanged.
-func RunScan(ctx context.Context, cfg *methodwebtest.Config) (*methodwebtest.Report, error) {
+func RunScan(ctx context.Context, cfg *new_.Config) (*new_.Report, error) {
 	srcFS, err := templates.ScanFS(cfg.ScanResourceTypes, cfg.ScanModules)
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func RunScan(ctx context.Context, cfg *methodwebtest.Config) (*methodwebtest.Rep
 }
 
 // RunFuzz builds JSONL entries and invokes runner.Run in fuzz mode.
-func RunFuzz(ctx context.Context, cfg *methodwebtest.Config) (*methodwebtest.Report, error) {
+func RunFuzz(ctx context.Context, cfg *new_.Config) (*new_.Report, error) {
 	srcFS, err := templates.FuzzFS(cfg.FuzzVulnTypes)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func RunFuzz(ctx context.Context, cfg *methodwebtest.Config) (*methodwebtest.Rep
 	return runner.Run(ctx, rCfg, builder)
 }
 
-func buildJSONL(cfg *methodwebtest.Config) []string {
+func buildJSONL(cfg *new_.Config) []string {
 	var out []string
 
 	for _, method := range cfg.FuzzMethods {
@@ -156,7 +156,7 @@ func buildJSONL(cfg *methodwebtest.Config) []string {
 	}
 	return out
 }
-func getProxy(cfg *methodwebtest.Config) string {
+func getProxy(cfg *new_.Config) string {
 	if cfg.Proxy != nil {
 		return *cfg.Proxy
 	}

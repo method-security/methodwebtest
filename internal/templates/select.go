@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	methodwebtest "github.com/Method-Security/methodwebtest/generated/go"
+	new_ "github.com/Method-Security/methodwebtest/generated/go/new_"
 )
 
 /* ---------------- public helper API ---------------- */
 
 // ScanFS remains unchanged
-func ScanFS(rTypes []methodwebtest.ResourceType, modules []string) ([]fs.FS, error) {
+func ScanFS(rTypes []new_.ResourceType, modules []string) ([]fs.FS, error) {
 	rTypes, err := wantResource(rTypes)
 	if err != nil {
 		return nil, err
@@ -39,7 +39,7 @@ func ScanFS(rTypes []methodwebtest.ResourceType, modules []string) ([]fs.FS, err
 }
 
 // FuzzFS now only recognizes SQLI, XSS, SSTI, COMMAND_INJECTION
-func FuzzFS(vTypes []methodwebtest.VulnType) ([]fs.FS, error) {
+func FuzzFS(vTypes []new_.VulnType) ([]fs.FS, error) {
 	vTypes, err := wantVuln(vTypes)
 	if err != nil {
 		return nil, err
@@ -58,18 +58,18 @@ func FuzzFS(vTypes []methodwebtest.VulnType) ([]fs.FS, error) {
 
 /* ---------------- tiny helpers ---------------- */
 
-func wantResource(in []methodwebtest.ResourceType) ([]methodwebtest.ResourceType, error) {
-	all := []methodwebtest.ResourceType{
-		methodwebtest.ResourceTypeApi,
-		methodwebtest.ResourceTypeCms,
-		methodwebtest.ResourceTypeWebserver,
+func wantResource(in []new_.ResourceType) ([]new_.ResourceType, error) {
+	all := []new_.ResourceType{
+		new_.ResourceTypeApi,
+		new_.ResourceTypeCms,
+		new_.ResourceTypeWebserver,
 	}
 	if len(in) == 0 {
 		return all, nil
 	}
 	for _, rt := range in {
 		switch rt {
-		case methodwebtest.ResourceTypeApi, methodwebtest.ResourceTypeCms, methodwebtest.ResourceTypeWebserver:
+		case new_.ResourceTypeApi, new_.ResourceTypeCms, new_.ResourceTypeWebserver:
 		default:
 			return nil, fmt.Errorf("unknown resource type %q", rt)
 		}
@@ -77,23 +77,23 @@ func wantResource(in []methodwebtest.ResourceType) ([]methodwebtest.ResourceType
 	return in, nil
 }
 
-func wantVuln(in []methodwebtest.VulnType) ([]methodwebtest.VulnType, error) {
+func wantVuln(in []new_.VulnType) ([]new_.VulnType, error) {
 	// exactly match the enum in your Fern spec
-	all := []methodwebtest.VulnType{
-		methodwebtest.VulnTypeSqli,
-		methodwebtest.VulnTypeXss,
-		methodwebtest.VulnTypeSsti,
-		methodwebtest.VulnTypeCommandInjection,
+	all := []new_.VulnType{
+		new_.VulnTypeSqli,
+		new_.VulnTypeXss,
+		new_.VulnTypeSsti,
+		new_.VulnTypeCommandInjection,
 	}
 	if len(in) == 0 {
 		return all, nil
 	}
 	// membership set
-	valid := map[methodwebtest.VulnType]struct{}{
-		methodwebtest.VulnTypeSqli:             {},
-		methodwebtest.VulnTypeXss:              {},
-		methodwebtest.VulnTypeSsti:             {},
-		methodwebtest.VulnTypeCommandInjection: {},
+	valid := map[new_.VulnType]struct{}{
+		new_.VulnTypeSqli:             {},
+		new_.VulnTypeXss:              {},
+		new_.VulnTypeSsti:             {},
+		new_.VulnTypeCommandInjection: {},
 	}
 	for _, vt := range in {
 		if _, ok := valid[vt]; !ok {

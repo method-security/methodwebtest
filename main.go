@@ -14,7 +14,11 @@ func main() {
 
 	methodwebtest := cmd.NewMethodWebTest(version)
 	methodwebtest.InitRootCommand()
+	methodwebtest.InitGeneralCommand()
+	methodwebtest.InitApacheCommand()
+	methodwebtest.InitNginxCommand()
 	methodwebtest.InitPentestCommand()
+	methodwebtest.InitWordpressCommand()
 
 	if err := methodwebtest.RootCmd.Execute(); err != nil {
 		os.Exit(1)
