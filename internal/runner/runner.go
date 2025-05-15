@@ -144,6 +144,9 @@ func Run(ctx context.Context, cfg Config, reportBuilder *report.Builder) (*new_.
 	}
 	defer eng.Close()
 
+	// enable matcher status to get callbacks for every request (even if no match)
+	eng.Options().MatcherStatus = true
+
 	if err := loadTargets(eng, cfg); err != nil {
 		return nil, err
 	}
