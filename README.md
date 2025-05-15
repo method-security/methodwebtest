@@ -29,9 +29,16 @@ For the full list of available installation options, please see the [Installatio
 
 ### Examples
 
+#### Setup (SSTI Fuzzing)
+
+- Sign up for a free account with PortSwigger and launch the following lab - replace URL in example with lab URL and fire!
+  [PortSwigger Web Security Academy SSTI Lab](https://portswigger.net/web-security/server-side-template-injection/exploiting/lab-server-side-template-injection-basic)
+
 ```bash
 methodwebtest pentest fuzz --vulntypes SSTI --targets https://0ad400c9035b8f508075e9e200180071.web-security-academy.net/ --params ewogICJwYXJhbXMiOiBbCiAgICB7CiAgICAgICJsb2NhdGlvbiI6ICJxdWVyeSIsCiAgICAgICJuYW1lIjogIm1lc3NhZ2UiLAogICAgICAidmFsdWUiOiAiJXMiCiAgICB9CiAgXQp9
 ```
+
+#### Setup (Webserver CVEs)
 
 ```bash
 methodwebtest pentest scan --resourcetypes webserver --targets https://example.com
