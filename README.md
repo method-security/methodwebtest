@@ -35,7 +35,7 @@ For the full list of available installation options, please see the [Installatio
   [PortSwigger Web Security Academy SSTI Lab](https://portswigger.net/web-security/server-side-template-injection/exploiting/lab-server-side-template-injection-basic)
 
 ```bash
-methodwebtest pentest fuzz --vulntypes SSTI --targets https://0ad400c9035b8f508075e9e200180071.web-security-academy.net/ --params ewogICJwYXJhbXMiOiBbCiAgICB7CiAgICAgICJsb2NhdGlvbiI6ICJxdWVyeSIsCiAgICAgICJuYW1lIjogIm1lc3NhZ2UiLAogICAgICAidmFsdWUiOiAiJXMiCiAgICB9CiAgXQp9
+methodwebtest pentest fuzz --vuln-types SSTI --targets https://0ad400c9035b8f508075e9e200180071.web-security-academy.net/ --params ewogICJwYXJhbXMiOiBbCiAgICB7CiAgICAgICJsb2NhdGlvbiI6ICJxdWVyeSIsCiAgICAgICJuYW1lIjogIm1lc3NhZ2UiLAogICAgICAidmFsdWUiOiAiJXMiCiAgICB9CiAgXQp9 --http-methods GET
 ```
 
 #### Setup (Webserver CVEs)
