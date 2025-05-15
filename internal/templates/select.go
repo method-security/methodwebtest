@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"embed"
 	"fmt"
 	"io/fs"
 	"path/filepath"
@@ -9,51 +10,64 @@ import (
 	new_ "github.com/Method-Security/methodwebtest/generated/go/new_"
 )
 
-/* ---------------- public helper API ---------------- */
+//go:embed pentest
+var All embed.FS
 
-// ScanFS remains unchanged
-func ScanFS(rTypes []new_.ResourceType, modules []string) ([]fs.FS, error) {
-	rTypes, err := wantResource(rTypes)
-	if err != nil {
-		return nil, err
-	}
-	modSet := normalize(modules)
-
+// subFS walks “pentest/<kind>/<subs…>” and returns each matching fs.FS or an error.
+func subFS(kind string, subs []string) ([]fs.FS, error) {
 	var out []fs.FS
-	for _, rt := range rTypes {
-		base := filepath.Join("pentest", "scan", strings.ToLower(string(rt)))
-		if len(modSet) == 0 {
-			if sub, err := fs.Sub(All, base); err == nil {
-				out = append(out, sub)
-			}
-			continue
-		}
-		for m := range modSet {
-			p := filepath.Join(base, strings.ToLower(m))
-			if sub, err := fs.Sub(All, p); err == nil {
-				out = append(out, sub)
-			}
-		}
-	}
-	return out, nil
-}
-
-// FuzzFS now only recognizes SQLI, XSS, SSTI, COMMAND_INJECTION
-func FuzzFS(vTypes []new_.VulnType) ([]fs.FS, error) {
-	vTypes, err := wantVuln(vTypes)
-	if err != nil {
-		return nil, err
-	}
-	var out []fs.FS
-	for _, vt := range vTypes {
-		base := filepath.Join("pentest", "fuzz", strings.ToLower(string(vt)))
-		sub, err := fs.Sub(All, base)
+	for _, s := range subs {
+		p := filepath.Join("pentest", kind, s)
+		sub, err := fs.Sub(All, p)
 		if err != nil {
-			return nil, fmt.Errorf("no templates under %q: %w", base, err)
+			return nil, fmt.Errorf("no templates under %q: %w", p, err)
 		}
 		out = append(out, sub)
 	}
 	return out, nil
+}
+
+func ScanFS(rTypes []new_.ResourceType, modules []string) ([]fs.FS, error) {
+	// Validate & default
+	rTypes, err := wantResource(rTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build the “scan/<resource>/<module>” paths
+	var subs []string
+	for _, rt := range rTypes {
+		rtName := strings.ToLower(string(rt))
+		if len(modules) == 0 {
+			subs = append(subs, rtName)
+		} else {
+			for _, m := range modules {
+				m = strings.ToLower(strings.TrimSpace(m))
+				if m == "" {
+					continue
+				}
+				subs = append(subs, filepath.Join(rtName, m))
+			}
+		}
+	}
+
+	return subFS("scan", subs)
+}
+
+func FuzzFS(vTypes []new_.VulnType) ([]fs.FS, error) {
+	// Validate & default
+	vTypes, err := wantVuln(vTypes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build the “fuzz/<vuln>” paths
+	var subs []string
+	for _, vt := range vTypes {
+		subs = append(subs, strings.ToLower(string(vt)))
+	}
+
+	return subFS("fuzz", subs)
 }
 
 /* ---------------- tiny helpers ---------------- */
