@@ -31,17 +31,32 @@ For the full list of available installation options, please see the [Installatio
 
 #### Setup (SSTI Fuzzing)
 
-- Sign up for a free account with PortSwigger and launch the following lab - replace URL in example with lab URL and fire!
-  [PortSwigger Web Security Academy SSTI Lab](https://portswigger.net/web-security/server-side-template-injection/exploiting/lab-server-side-template-injection-basic)
-
 ```bash
-methodwebtest pentest fuzz --vuln-types SSTI --targets https://0ad400c9035b8f508075e9e200180071.web-security-academy.net/ --params ewogICJwYXJhbXMiOiBbCiAgICB7CiAgICAgICJsb2NhdGlvbiI6ICJxdWVyeSIsCiAgICAgICJuYW1lIjogIm1lc3NhZ2UiLAogICAgICAidmFsdWUiOiAiJXMiCiAgICB9CiAgXQp9 --http-methods GET
+methodwebtest pentest dast --vuln-types SSTI --targets https://0ad400c9035b8f508075e9e200180071.web-security-academy.net/ --params ewogICJwYXJhbXMiOiBbCiAgICB7CiAgICAgICJsb2NhdGlvbiI6ICJxdWVyeSIsCiAgICAgICJuYW1lIjogIm1lc3NhZ2UiLAogICAgICAidmFsdWUiOiAiJXMiCiAgICB9CiAgXQp9 --http-methods GET
 ```
 
-#### Setup (Webserver CVEs)
+Params Base64-encoded JSON
+
+```json
+{
+  "params": [
+    {
+      "location": "query",
+      "name": "message",
+      "value": "%s"
+    }
+  ]
+}
+```
+
+- Sign up for a free account with PortSwigger and launch the following lab - replace URL in example with lab URL and fire!
+
+  [PortSwigger Web Security Academy SSTI Lab](https://portswigger.net/web-security/server-side-template-injection/exploiting/lab-server-side-template-injection-basic)
+
+#### Setup (CVEs 2023,2024,2025)
 
 ```bash
-methodwebtest pentest scan --resourcetypes webserver --targets https://example.com
+methodwebtest pentest scan --scan-types cve --targets https://example.com --modules 2023,2024,2025
 ```
 
 ### Building a Statically Compiled Container for Local Testing
