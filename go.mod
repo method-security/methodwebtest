@@ -4,9 +4,12 @@ go 1.24
 
 toolchain go1.24.2
 
+replace github.com/Microsoft/go-mssqldb v1.8.1 => github.com/microsoft/go-mssqldb v1.8.1
+
 require (
 	github.com/Method-Security/pkg v0.0.6
 	github.com/google/uuid v1.6.0
+	github.com/microsoft/go-mssqldb v1.8.1
 	github.com/palantir/pkg/datetime v1.1.0
 	github.com/palantir/witchcraft-go-logging v1.57.0
 	github.com/projectdiscovery/nuclei/v3 v3.4.3
@@ -14,8 +17,6 @@ require (
 	github.com/stretchr/testify v1.10.0
 	github.com/valyala/fasthttp v1.62.0
 )
-
-replace github.com/Microsoft/go-mssqldb => github.com/microsoft/go-mssqldb v1.8.1
 
 require (
 	aead.dev/minisign v0.2.0 // indirect
@@ -202,7 +203,6 @@ require (
 	github.com/mholt/acmez v1.2.0 // indirect
 	github.com/mholt/archives v0.1.0 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.27 // indirect
-	github.com/microsoft/go-mssqldb v1.8.1 // indirect
 	github.com/miekg/dns v1.1.62 // indirect
 	github.com/minio/selfupdate v0.6.1-0.20230907112617-f11e74f84ca7 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
