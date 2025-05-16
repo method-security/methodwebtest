@@ -2103,3 +2103,4 @@ mellium.im/sasl
 # moul.io/http2curl v1.0.0
 ## explicit
 moul.io/http2curl
+# github.com/Microsoft/go-mssqldb => github.com/microsoft/go-mssqldb v1.8.1

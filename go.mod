@@ -15,6 +15,8 @@ require (
 	github.com/valyala/fasthttp v1.62.0
 )
 
+replace github.com/Microsoft/go-mssqldb => github.com/microsoft/go-mssqldb v1.8.1
+
 require (
 	aead.dev/minisign v0.2.0 // indirect
 	code.gitea.io/sdk/gitea v0.17.0 // indirect
