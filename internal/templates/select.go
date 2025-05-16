@@ -29,6 +29,35 @@ func subFS(kind string, subs []string) ([]fs.FS, error) {
 	return out, nil
 }
 
+// ScanTypeFS returns the FS views for the given scanTypes.
+// If scanType=="technologies", it delegates to ScanFS(resource, modules).
+// Otherwise it looks in pentest/scan/<scanType>.
+func ScanTypeFS(scanTypes []new_.ScanType,
+	resourceTypes []new_.ResourceType,
+	modules []string,
+) ([]fs.FS, error) {
+	var out []fs.FS
+	for _, st := range scanTypes {
+		switch st {
+		case new_.ScanTypeTechnologies:
+			techFS, err := ScanFS(resourceTypes, modules)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, techFS...)
+		default:
+			base := filepath.Join("pentest", "scan", strings.ToLower(string(st)))
+			sub, err := fs.Sub(All, base)
+			if err != nil {
+				// if user typo, warn but continue
+				return nil, fmt.Errorf("unknown scan-type %q", st)
+			}
+			out = append(out, sub)
+		}
+	}
+	return out, nil
+}
+
 func ScanFS(rTypes []new_.ResourceType, modules []string) ([]fs.FS, error) {
 	// Validate & default
 	rTypes, err := wantResource(rTypes)
@@ -53,23 +82,23 @@ func ScanFS(rTypes []new_.ResourceType, modules []string) ([]fs.FS, error) {
 		}
 	}
 
-	return subFS("scan", subs)
+	return subFS("scan/technologies", subs)
 }
 
-func FuzzFS(vTypes []new_.VulnType) ([]fs.FS, error) {
+func DastFS(vTypes []new_.VulnType) ([]fs.FS, error) {
 	// Validate & default
 	vTypes, err := wantVuln(vTypes)
 	if err != nil {
 		return nil, err
 	}
 
-	// Build the “fuzz/<vuln>” paths
+	// Build the “dast/<vuln>” paths
 	var subs []string
 	for _, vt := range vTypes {
 		subs = append(subs, strings.ToLower(string(vt)))
 	}
 
-	return subFS("fuzz", subs)
+	return subFS("dast", subs)
 }
 
 /* ---------------- tiny helpers ---------------- */
@@ -100,6 +129,7 @@ func wantVuln(in []new_.VulnType) ([]new_.VulnType, error) {
 		new_.VulnTypeXss,
 		new_.VulnTypeSsti,
 		new_.VulnTypeCommandInjection,
+		new_.VulnTypePathTraversal,
 	}
 	if len(in) == 0 {
 		return all, nil
@@ -110,6 +140,7 @@ func wantVuln(in []new_.VulnType) ([]new_.VulnType, error) {
 		new_.VulnTypeXss:              {},
 		new_.VulnTypeSsti:             {},
 		new_.VulnTypeCommandInjection: {},
+		new_.VulnTypePathTraversal:    {},
 	}
 	for _, vt := range in {
 		if _, ok := valid[vt]; !ok {

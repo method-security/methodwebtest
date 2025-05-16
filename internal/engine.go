@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/url"
 	"strings"
 
@@ -28,16 +29,23 @@ type proxifyRequest struct {
 
 // RunScan for scan mode—unchanged.
 func RunScan(ctx context.Context, cfg *new_.Config) (*new_.Report, error) {
-	srcFS, err := templates.ScanFS(cfg.ScanResourceTypes, cfg.ScanModules)
+	var src []fs.FS
+	var err error
+	if len(cfg.ScanTypes) > 0 {
+		src, err = templates.ScanTypeFS(cfg.ScanTypes, cfg.ScanResourceTypes, cfg.ScanModules)
+	} else {
+		src, err = templates.ScanFS(cfg.ScanResourceTypes, cfg.ScanModules)
+	}
 	if err != nil {
 		return nil, err
 	}
 	rCfg := runner.Config{
-		Targets: cfg.Targets,
-		FS:      srcFS,
-		Threads: cfg.Threads,
-		Proxy:   getProxy(cfg),
-		RunMode: cfg.RunMode,
+		Targets:        cfg.Targets,
+		FS:             src,
+		Threads:        cfg.Threads,
+		Proxy:          getProxy(cfg),
+		RunMode:        cfg.RunMode,
+		SuccessfulOnly: cfg.SuccessfulOnly,
 	}
 	builder := report.NewBuilder()
 	if err := builder.PopulateConfig(cfg); err != nil {
@@ -46,19 +54,20 @@ func RunScan(ctx context.Context, cfg *new_.Config) (*new_.Report, error) {
 	return runner.Run(ctx, rCfg, builder)
 }
 
-// RunFuzz builds JSONL entries and invokes runner.Run in fuzz mode.
-func RunFuzz(ctx context.Context, cfg *new_.Config) (*new_.Report, error) {
-	srcFS, err := templates.FuzzFS(cfg.FuzzVulnTypes)
+// RunDast builds JSONL entries and invokes runner.Run in dast mode.
+func RunDast(ctx context.Context, cfg *new_.Config) (*new_.Report, error) {
+	srcFS, err := templates.DastFS(cfg.DastVulnTypes)
 	if err != nil {
 		return nil, err
 	}
 	jsonl := buildJSONL(cfg)
 	rCfg := runner.Config{
-		RawRequests: jsonl,
-		FS:          srcFS,
-		Threads:     cfg.Threads,
-		Proxy:       getProxy(cfg),
-		RunMode:     cfg.RunMode,
+		RawRequests:    jsonl,
+		FS:             srcFS,
+		Threads:        cfg.Threads,
+		Proxy:          getProxy(cfg),
+		RunMode:        cfg.RunMode,
+		SuccessfulOnly: cfg.SuccessfulOnly,
 	}
 	builder := report.NewBuilder()
 	if err := builder.PopulateConfig(cfg); err != nil {
@@ -70,7 +79,7 @@ func RunFuzz(ctx context.Context, cfg *new_.Config) (*new_.Report, error) {
 func buildJSONL(cfg *new_.Config) []string {
 	var out []string
 
-	for _, method := range cfg.FuzzMethods {
+	for _, method := range cfg.DastMethods {
 		for _, tgt := range cfg.Targets {
 			// 1) URL + query
 			uStr := strings.ReplaceAll(tgt, "%s", fuzzMarker)
@@ -79,7 +88,7 @@ func buildJSONL(cfg *new_.Config) []string {
 				continue
 			}
 			q := u.Query()
-			for _, p := range cfg.FuzzParams {
+			for _, p := range cfg.DastParams {
 				if strings.EqualFold(string(p.Location), "query") && p.Value != nil {
 					v := strings.ReplaceAll(*p.Value, "%s", fuzzMarker)
 					q.Add(p.Name, v)
@@ -89,7 +98,7 @@ func buildJSONL(cfg *new_.Config) []string {
 
 			// 2) headers & cookies
 			hmap := map[string]string{}
-			for _, p := range cfg.FuzzParams {
+			for _, p := range cfg.DastParams {
 				if p.Value == nil {
 					continue
 				}
@@ -110,7 +119,7 @@ func buildJSONL(cfg *new_.Config) []string {
 			bodyParams := url.Values{}
 			if !strings.EqualFold(string(method), "GET") &&
 				!strings.EqualFold(string(method), "HEAD") {
-				for _, p := range cfg.FuzzParams {
+				for _, p := range cfg.DastParams {
 					if strings.EqualFold(string(p.Location), "body") && p.Value != nil {
 						v := strings.ReplaceAll(*p.Value, "%s", fuzzMarker)
 						bodyParams.Add(p.Name, v)

@@ -13,18 +13,19 @@ import (
 )
 
 type Config struct {
-	Targets     []string
-	RawRequests []string // JSONL lines when fuzzing
-	FS          []fs.FS  // template sources
-	Threads     int
-	Proxy       string
-	RunMode     new_.RunMode
+	Targets        []string
+	RawRequests    []string // JSONL lines when fuzzing
+	FS             []fs.FS  // template sources
+	Threads        int
+	Proxy          string
+	RunMode        new_.RunMode
+	SuccessfulOnly *bool
 }
 
 func validateConfig(cfg Config) error {
-	if cfg.RunMode == new_.RunModeFuzz {
+	if cfg.RunMode == new_.RunModeDast {
 		if len(cfg.RawRequests) == 0 {
-			return fmt.Errorf("runner: no RawRequests provided for fuzz mode")
+			return fmt.Errorf("runner: no RawRequests provided for dast mode")
 		}
 	} else {
 		if len(cfg.Targets) == 0 {
@@ -80,10 +81,9 @@ func buildNucleiOptions(cfg Config, tmpDir string) []nuclei.NucleiSDKOptions {
 			ProbeConcurrency:              cfg.Threads,
 		}),
 		nuclei.WithVerbosity(nuclei.VerbosityOptions{Silent: true}),
-		//nuclei.EnableMatcherStatus(),
 	}
 
-	if cfg.RunMode == new_.RunModeFuzz {
+	if cfg.RunMode == new_.RunModeDast {
 		opts = append(opts, nuclei.DASTMode())
 	}
 
@@ -96,7 +96,7 @@ func buildNucleiOptions(cfg Config, tmpDir string) []nuclei.NucleiSDKOptions {
 }
 
 func loadTargets(eng *nuclei.NucleiEngine, cfg Config) error {
-	if cfg.RunMode == new_.RunModeFuzz {
+	if cfg.RunMode == new_.RunModeDast {
 		// write JSONL to temp file
 		f, err := os.CreateTemp("", "requests-*.jsonl")
 		if err != nil {
@@ -144,8 +144,9 @@ func Run(ctx context.Context, cfg Config, reportBuilder *report.Builder) (*new_.
 	}
 	defer eng.Close()
 
-	// enable matcher status to get callbacks for every request (even if no match)
-	eng.Options().MatcherStatus = true
+	if cfg.SuccessfulOnly != nil && *cfg.SuccessfulOnly {
+		eng.Options().MatcherStatus = true
+	}
 
 	if err := loadTargets(eng, cfg); err != nil {
 		return nil, err
