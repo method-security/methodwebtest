@@ -39,7 +39,7 @@ jobs:
           version: latest
           args: >-
             build --single-target --clean --snapshot --timeout 60m
-            -f ${{ inputs.goreleaser_config }} ${{ inputs.goreleaser_options }}
+            -f .goreleaser/goreleaser-publish.yml ${{ inputs.goreleaser_options }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
