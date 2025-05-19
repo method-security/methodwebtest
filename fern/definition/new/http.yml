@@ -1,0 +1,90 @@
+types:
+  # Http Method Enum
+  HttpMethod:
+    enum:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - PATCH
+      - OPTIONS
+      - HEAD
+      - CONNECT
+      - TRACE
+
+  # Leaf payload types
+  JsonBody:
+    properties:
+      data: unknown # any JSON structure
+      mimeType: optional<string>
+
+  FormBody:
+    properties:
+      fields: map<string, string>
+      mimeType: optional<string>
+
+  BinaryBody:
+    properties:
+      base64: base64
+      mimeType: optional<string>
+
+  MultipartPart:
+    properties:
+      headers: optional<map<string, string>>
+      content: BinaryBody
+
+  MultipartBody:
+    properties:
+      parts: list<MultipartPart>
+      mimeType: optional<string>
+
+  TextBody:
+    properties:
+      value: string
+      mimeType: optional<string>
+      encoding: optional<string>
+
+  # Discriminated Union
+  Body:
+    discriminant: kind
+    union:
+      json: JsonBody
+      form: FormBody
+      multipart: MultipartBody
+      text: TextBody
+      binary: BinaryBody
+
+  # Request Params
+  RequestParams:
+    properties:
+      path: optional<string>
+      query: optional<map<string, string>>
+      header: optional<map<string, list<string>>>
+      body: optional<Body>
+
+  # Request Structure
+  HttpRequest:
+    properties:
+      method: HttpMethod
+      baseUrl: string
+      path: string
+      baseHeaders: optional<map<string, list<string>>>
+      parameters: optional<RequestParams>
+      timestamp: datetime
+      redirectChain: optional<list<string>>
+
+  # Response Structure
+  HttpResponse:
+    properties:
+      statusCode: optional<integer>
+      responseBody: optional<Body>
+      responseHeaders: optional<map<string, list<string>>>
+      receivedAt: optional<datetime>
+      sizeBytes: optional<integer>
+      errors: optional<list<string>>
+
+  # Full HTTP Request/Response
+  HttpRequestResponse:
+    properties:
+      request: HttpRequest
+      response: optional<HttpResponse>

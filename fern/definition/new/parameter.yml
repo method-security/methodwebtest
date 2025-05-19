@@ -1,0 +1,13 @@
+types:
+  ParameterLocation:
+    enum:
+      - QUERY
+      - HEADER
+      - BODY
+      - COOKIE
+
+  Parameter:
+    properties:
+      location: ParameterLocation
+      name: string
+      value: optional<string>

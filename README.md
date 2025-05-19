@@ -29,15 +29,38 @@ For the full list of available installation options, please see the [Installatio
 
 ### Examples
 
-```bash
-methodwebtest general path traversal --targets https://example.com --paths /.git/config
-```
+#### Setup (SSTI Fuzzing)
 
 ```bash
-methodwebtest apache modfile --targets https://example.com 
+methodwebtest pentest dast --vuln-types SSTI --targets https://0ad400c9035b8f508075e9e200180071.web-security-academy.net/ --params ewogICJwYXJhbXMiOiBbCiAgICB7CiAgICAgICJsb2NhdGlvbiI6ICJxdWVyeSIsCiAgICAgICJuYW1lIjogIm1lc3NhZ2UiLAogICAgICAidmFsdWUiOiAiJXMiCiAgICB9CiAgXQp9 --http-methods GET
+```
+
+Params Base64-encoded JSON
+
+```json
+{
+  "params": [
+    {
+      "location": "query",
+      "name": "message",
+      "value": "%s"
+    }
+  ]
+}
+```
+
+- Sign up for a free account with PortSwigger and launch the following lab - replace URL in example with lab URL and fire!
+
+  [PortSwigger Web Security Academy SSTI Lab](https://portswigger.net/web-security/server-side-template-injection/exploiting/lab-server-side-template-injection-basic)
+
+#### Setup (CVEs 2023,2024,2025)
+
+```bash
+methodwebtest pentest scan --scan-types cve --targets https://example.com --modules 2023,2024,2025
 ```
 
 ### Building a Statically Compiled Container for Local Testing
+
 (Reference reusable-build.yaml)
 
 1. Build ARM64 builder image: `docker buildx build . --platform linux/arm64 --load --tag armbuilder -f Dockerfile.builder`
@@ -52,9 +75,9 @@ methodwebtest apache modfile --targets https://example.com
 
 6. OR run command without shell example: `docker run methodwebtest:local TODO`
 
-
 ### Note:
-This tool runs on a headless-shell base image to support chrome/chromium browser automation. The dockerfile uses debian-based install tools. 
+
+This tool runs on a headless-shell base image to support chrome/chromium browser automation. The dockerfile uses debian-based install tools.
 
 ## Contributing
 

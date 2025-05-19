@@ -1,0 +1,44 @@
+imports:
+  parameter: ./parameter.yml
+  http: ./http.yml
+
+types:
+  ScanType:
+    enum:
+      - CVE
+      - MISCONFIGURATIONS
+      - TECHNOLOGIES
+
+  ResourceType:
+    enum:
+      - API
+      - CMS
+      - WEBSERVER
+
+  VulnType:
+    enum:
+      - SQLI
+      - XSS
+      - SSTI
+      - COMMAND_INJECTION
+      - PATH_TRAVERSAL
+
+  RunMode:
+    enum:
+      - DAST
+      - SCAN
+
+  Config:
+    properties:
+      targets: list<string>
+      threads: integer
+      timeout: integer
+      proxy: optional<string>
+      runMode: RunMode
+      successfulOnly: optional<boolean>
+      scanTypes: optional<list<ScanType>>
+      scanResourceTypes: optional<list<ResourceType>>
+      scanModules: optional<list<string>>
+      dastVulnTypes: optional<list<VulnType>>
+      dastParams: optional<list<parameter.Parameter>>
+      dastMethods: optional<list<http.HttpMethod>>
